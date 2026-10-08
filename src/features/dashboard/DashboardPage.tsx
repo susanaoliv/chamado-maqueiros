@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Abas, Cartao, Carregando, Erro, Kpi, Selecao } from '@/components/ui';
 import { Colunas, Ranking, Rosca, comOutros, useCores } from '@/components/graficos';
-import { useChamadosPeriodo, useConfig, useIntervalosPeriodo, useMaqueiros, useSetores } from '@/hooks/dados';
+import { useChamadosPeriodo, useConfig, useDespachoPeriodo, useIntervalosPeriodo, useMaqueiros, useSetores } from '@/hooks/dados';
 import { intervaloPeriodo, fmtMin, fmtDuracao, fmtDataHora, DIAS_SEMANA } from '@/lib/tempo';
 import {
   agrupar, corPrazo, gruposAtraso, intervalosPorHora, intervalosPorMaqueiro, mapaCalor, media, motivosAtraso, necessidades, pct, porHora, resumo,
-  resumoIntervalos, topN, type LinhaMetrica,
+  resumoIntervalos, topN, type LinhaMetrica, resumoOfertas, ofertasPorMaqueiro, motivosRecusa, horasJornadaPorMaqueiro,
 } from '@/lib/metricas';
 import { Tabela } from '@/components/ui';
 import { TIPOS_CHAMADO } from '@/lib/constantes';
@@ -57,7 +57,7 @@ export function MaisFiltros({ f, setF }: { f: Filtros; setF: (f: Filtros) => voi
 
 export function DashboardPage() {
   const [periodo, setPeriodo] = useState<Periodo>('7dias');
-  const [aba, setAba] = useState<'geral' | 'demanda' | 'equipe' | 'atrasos' | 'intervalos'>('geral');
+  const [aba, setAba] = useState<'geral' | 'demanda' | 'equipe' | 'atrasos' | 'intervalos' | 'app'>('geral');
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_VAZIOS);
   const { de, ate } = useMemo(() => intervaloPeriodo(periodo), [periodo]);
   const { data, isLoading, error } = useChamadosPeriodo(de, ate);
@@ -107,6 +107,7 @@ export function DashboardPage() {
               { id: 'equipe', rotulo: 'Equipe' },
               { id: 'atrasos', rotulo: 'Atrasos' },
               { id: 'intervalos', rotulo: 'Intervalos' },
+              { id: 'app', rotulo: 'App' },
             ]}
             ativa={aba}
             onChange={setAba}
@@ -164,6 +165,8 @@ export function DashboardPage() {
           {aba === 'equipe' && <Equipe linhas={linhas} sla={sla} />}
 
           {aba === 'intervalos' && <Intervalos de={de} ate={ate} maqueiro={filtros.maqueiro} />}
+
+          {aba === 'app' && <AppDespacho de={de} ate={ate} maqueiro={filtros.maqueiro} />}
 
           {aba === 'atrasos' && (
             <div className="grid gap-4 lg:grid-cols-2">
@@ -344,6 +347,63 @@ export function Intervalos({ de, ate, maqueiro }: { de: string; ate: string; maq
           </Cartao>
         </div>
       )}
+    </div>
+  );
+}
+
+export function AppDespacho({ de, ate, maqueiro }: { de: string; ate: string; maqueiro?: string }) {
+  const { data, isLoading, error } = useDespachoPeriodo(de, ate);
+  if (isLoading) return <Carregando />;
+  if (error) return <Erro erro={error} />;
+  const ofertas = (data?.ofertas ?? []).filter((o) => !maqueiro || o.maqueiro_nome === maqueiro);
+  const jornadas = (data?.jornadas ?? []).filter((j) => !maqueiro || j.maqueiro_nome === maqueiro);
+  const r = resumoOfertas(ofertas);
+  const porMaq = ofertasPorMaqueiro(ofertas);
+  if (!ofertas.length && !jornadas.length)
+    return (
+      <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500 dark:border-slate-700">
+        Nenhum uso do app no período. Os dados aparecem quando os maqueiros iniciarem jornada e receberem chamados pelo app.
+      </p>
+    );
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        <Kpi titulo="Chamados oferecidos" valor={r.enviadas} cor="blue" />
+        <Kpi titulo="Aceitos" valor={r.aceitas} detalhe={pct(r.pctAceite) + ' de aceite'} cor="green" />
+        <Kpi titulo="Recusados" valor={r.recusadas} cor="orange" />
+        <Kpi titulo="Sem resposta" valor={r.expiradas} detalhe="tempo esgotado" cor="red" />
+        <Kpi titulo="Tempo até aceitar" valor={r.segundosAceiteMedio === null ? '—' : `${Math.round(r.segundosAceiteMedio)} s`} cor="teal" />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Cartao titulo="Motivos de recusa">
+          <Ranking dados={topN(motivosRecusa(ofertas))} />
+        </Cartao>
+        <Cartao titulo="Horas em jornada por maqueiro">
+          <Ranking dados={topN(horasJornadaPorMaqueiro(jornadas), 12)} sufixo=" h" />
+        </Cartao>
+        <Cartao titulo="Respostas por maqueiro" className="lg:col-span-2">
+          <Tabela>
+            <thead>
+              <tr>
+                <th>Maqueiro</th>
+                <th>Aceitou</th>
+                <th>Recusou</th>
+                <th>Não respondeu</th>
+              </tr>
+            </thead>
+            <tbody>
+              {porMaq.map((g) => (
+                <tr key={g.chave}>
+                  <td className="font-semibold">{g.chave}</td>
+                  <td>{g.aceitas}</td>
+                  <td>{g.recusadas}</td>
+                  <td>{g.expiradas}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Tabela>
+        </Cartao>
+      </div>
     </div>
   );
 }

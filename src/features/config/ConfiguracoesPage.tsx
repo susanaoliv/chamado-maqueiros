@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Abas, Botao, Cartao, Campo, Carregando, Entrada, Erro, Modal, Selecao, Tabela } from '@/components/ui';
+import { Abas, AreaTexto, Botao, Cartao, Campo, Carregando, Entrada, Erro, Modal, Selecao, Tabela } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
-import { useConfig, useSetores } from '@/hooks/dados';
+import { useConfig, useMaqueiros, useSetores } from '@/hooks/dados';
 import { mensagemErro } from '@/lib/erros';
 import { normalizar } from '@/lib/regras';
-import type { Perfil, Setor } from '@/types/database';
+import type { Json, Perfil, Setor } from '@/types/database';
 
 export function ConfiguracoesPage() {
-  const [aba, setAba] = useState<'geral' | 'setores' | 'acessos'>('geral');
+  const [aba, setAba] = useState<'geral' | 'app' | 'setores' | 'acessos'>('geral');
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -17,6 +17,7 @@ export function ConfiguracoesPage() {
         <Abas
           abas={[
             { id: 'geral', rotulo: 'Parâmetros' },
+            { id: 'app', rotulo: 'App dos maqueiros' },
             { id: 'setores', rotulo: 'Setores' },
             { id: 'acessos', rotulo: 'Acessos' },
           ]}
@@ -25,6 +26,7 @@ export function ConfiguracoesPage() {
         />
       </div>
       {aba === 'geral' && <Parametros />}
+      {aba === 'app' && <ConfigApp />}
       {aba === 'setores' && <Setores />}
       {aba === 'acessos' && <Acessos />}
     </div>
@@ -184,6 +186,8 @@ async function adminUsuarios<T>(body: Record<string, unknown>): Promise<T> {
 function Acessos() {
   const qc = useQueryClient();
   const { data: setores = [] } = useSetores();
+  const { data: maqueiros = [] } = useMaqueiros();
+  const maqueiroNome = (id: string | null) => maqueiros.find((m) => m.id === id)?.nome ?? '';
   const lista = useQuery({
     queryKey: ['acessos'],
     queryFn: () => adminUsuarios<{ perfis: Perfil[] }>({ acao: 'listar' }).then((r) => r.perfis),
@@ -203,7 +207,7 @@ function Acessos() {
   const [editando, setEditando] = useState<(Perfil & { aprovar?: boolean }) | null>(null);
   const pendentes = (lista.data ?? []).filter((p) => !p.ativo && !p.aprovado_em);
   const demais = (lista.data ?? []).filter((p) => p.ativo || p.aprovado_em);
-  const NOME_PAPEL: Record<string, string> = { gestao: 'Gestão NIR', telefonista: 'Telefonista', setor: 'Enfermagem' };
+  const NOME_PAPEL: Record<string, string> = { gestao: 'Gestão NIR', telefonista: 'Telefonista', setor: 'Enfermagem', maqueiro: 'Maqueiro' };
 
   return (
     <div className="space-y-4">
@@ -226,7 +230,7 @@ function Acessos() {
                   <td className="font-semibold">{p.nome}</td>
                   <td className="font-mono">{p.usuario}</td>
                   <td>{NOME_PAPEL[p.papel] ?? p.papel}</td>
-                  <td>{setorNome(p.setor_id)}</td>
+                  <td>{setorNome(p.setor_id) || maqueiroNome(p.maqueiro_id)}</td>
                   <td className="whitespace-nowrap">{new Date(p.created_at).toLocaleString('pt-BR')}</td>
                   <td className="flex gap-2">
                     <Botao tamanho="sm" variante="sucesso" onClick={() => setEditando({ ...p, aprovar: true })}>
@@ -312,7 +316,7 @@ function Acessos() {
                 <td className="font-mono">{p.usuario}</td>
                 <td>{NOME_PAPEL[p.papel] ?? p.papel}</td>
                 <td>{p.nome}</td>
-                <td>{setorNome(p.setor_id)}</td>
+                <td>{setorNome(p.setor_id) || maqueiroNome(p.maqueiro_id)}</td>
                 <td>{p.ativo ? 'Ativo' : 'Bloqueado'}</td>
                 <td className="flex gap-2">
                   <Botao tamanho="sm" variante="secundario" onClick={() => setEditando(p)}>
@@ -336,6 +340,7 @@ function Acessos() {
           <PerfilForm
             inicial={editando}
             setores={setores.filter((s) => s.ativo)}
+            maqueiros={maqueiros}
             textoBotao={editando.aprovar ? 'Aprovar acesso' : 'Salvar'}
             aoSalvar={async (v) => {
               try {
@@ -372,19 +377,22 @@ function Acessos() {
 function PerfilForm({
   inicial,
   setores,
+  maqueiros,
   textoBotao,
   aoSalvar,
 }: {
   inicial: Perfil;
   setores: Setor[];
+  maqueiros: { id: string; nome: string }[];
   textoBotao: string;
-  aoSalvar: (v: { papel: string; setor_id: string | null; nome: string }) => Promise<void>;
+  aoSalvar: (v: { papel: string; setor_id: string | null; maqueiro_id: string | null; nome: string }) => Promise<void>;
 }) {
   const [papel, setPapel] = useState(inicial.papel);
   const [setorId, setSetorId] = useState(inicial.setor_id ?? '');
+  const [maqueiroId, setMaqueiroId] = useState(inicial.maqueiro_id ?? '');
   const [nome, setNome] = useState(inicial.nome);
   const [salvando, setSalvando] = useState(false);
-  const valido = nome.trim().length >= 2 && (papel !== 'setor' || !!setorId);
+  const valido = nome.trim().length >= 2 && (papel !== 'setor' || !!setorId) && (papel !== 'maqueiro' || !!maqueiroId);
   return (
     <div className="space-y-3">
       <Campo rotulo="Nome" htmlFor="pf_nome">
@@ -394,9 +402,22 @@ function PerfilForm({
         <Selecao id="pf_papel" value={papel} onChange={(e) => setPapel(e.target.value)}>
           <option value="setor">Setor (enfermagem)</option>
           <option value="telefonista">Telefonista</option>
+          <option value="maqueiro">Maqueiro (app)</option>
           <option value="gestao">Gestão NIR</option>
         </Selecao>
       </Campo>
+      {papel === 'maqueiro' && (
+        <Campo rotulo="Maqueiro da escala" htmlFor="pf_maqueiro">
+          <Selecao id="pf_maqueiro" value={maqueiroId} onChange={(e) => setMaqueiroId(e.target.value)}>
+            <option value="">Selecione…</option>
+            {maqueiros.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.nome}
+              </option>
+            ))}
+          </Selecao>
+        </Campo>
+      )}
       {papel === 'setor' && (
         <Campo rotulo="Setor" htmlFor="pf_setor">
           <Selecao id="pf_setor" value={setorId} onChange={(e) => setSetorId(e.target.value)}>
@@ -414,12 +435,164 @@ function PerfilForm({
         carregando={salvando}
         onClick={async () => {
           setSalvando(true);
-          await aoSalvar({ papel, setor_id: papel === 'setor' ? setorId : null, nome: nome.trim() });
+          await aoSalvar({
+            papel,
+            setor_id: papel === 'setor' ? setorId : null,
+            maqueiro_id: papel === 'maqueiro' ? maqueiroId : null,
+            nome: nome.trim(),
+          });
           setSalvando(false);
         }}
       >
         {textoBotao}
       </Botao>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// App dos maqueiros: distribuição automática, tempo de aceite, local do hospital, feriados
+// ----------------------------------------------------------------------------
+function ConfigApp() {
+  const qc = useQueryClient();
+  const cfg = useQuery({
+    queryKey: ['config', 'app'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('configuracoes')
+        .select('*')
+        .in('chave', ['despacho_automatico', 'oferta_timeout_s', 'hospital_lat', 'hospital_lng', 'hospital_raio_m', 'feriados']);
+      if (error) throw error;
+      return Object.fromEntries(data.map((r) => [r.chave, r.valor])) as Record<string, unknown>;
+    },
+  });
+  const [v, setV] = useState({ automatico: true, timeout: '90', lat: '', lng: '', raio: '300', feriados: '' });
+  const [localizando, setLocalizando] = useState(false);
+  useEffect(() => {
+    const c = cfg.data;
+    if (!c) return;
+    setV({
+      automatico: c.despacho_automatico !== false,
+      timeout: String(c.oferta_timeout_s ?? 90),
+      lat: c.hospital_lat == null ? '' : String(c.hospital_lat),
+      lng: c.hospital_lng == null ? '' : String(c.hospital_lng),
+      raio: String(c.hospital_raio_m ?? 300),
+      feriados: ((c.feriados as string[]) ?? []).map((d) => d.split('-').reverse().join('/')).join('\n'),
+    });
+  }, [cfg.data]);
+
+  const usarLocalAtual = () => {
+    if (!navigator.geolocation) return toast.error('Este aparelho não informa a localização.');
+    setLocalizando(true);
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        setV((x) => ({ ...x, lat: p.coords.latitude.toFixed(6), lng: p.coords.longitude.toFixed(6) }));
+        toast.success(`Localização capturada (precisão de ${Math.round(p.coords.accuracy)} m). Confira no mapa e salve.`);
+        setLocalizando(false);
+      },
+      () => {
+        toast.error('Não foi possível obter a localização. Permita o acesso no navegador.');
+        setLocalizando(false);
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
+    );
+  };
+
+  const salvar = useMutation({
+    mutationFn: async () => {
+      const timeout = Number(v.timeout);
+      const raio = Number(v.raio);
+      const lat = v.lat.trim() ? Number(v.lat.replace(',', '.')) : null;
+      const lng = v.lng.trim() ? Number(v.lng.replace(',', '.')) : null;
+      if (!(timeout >= 30 && timeout <= 600)) throw new Error('O tempo para aceitar deve ficar entre 30 e 600 segundos.');
+      if (!(raio >= 50 && raio <= 2000)) throw new Error('O raio deve ficar entre 50 e 2000 metros.');
+      if ((lat === null) !== (lng === null) || (lat !== null && (Math.abs(lat) > 90 || Math.abs(lng!) > 180 || Number.isNaN(lat) || Number.isNaN(lng))))
+        throw new Error('Latitude/longitude inválidas.');
+      const feriados: string[] = [];
+      for (const linha of v.feriados.split(/[\n,;]+/).map((x) => x.trim()).filter(Boolean)) {
+        const m = linha.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (!m) throw new Error(`Feriado inválido: "${linha}". Use dd/mm/aaaa, um por linha.`);
+        feriados.push(`${m[3]}-${m[2]}-${m[1]}`);
+      }
+      const linhas: { chave: string; valor: Json }[] = [
+        { chave: 'despacho_automatico', valor: v.automatico },
+        { chave: 'oferta_timeout_s', valor: timeout },
+        { chave: 'hospital_raio_m', valor: raio },
+        { chave: 'feriados', valor: [...new Set(feriados)].sort() },
+      ];
+      // a coluna valor não aceita nulo: o local só é gravado quando informado
+      if (lat !== null && lng !== null) linhas.push({ chave: 'hospital_lat', valor: lat }, { chave: 'hospital_lng', valor: lng });
+      const { error } = await supabase.from('configuracoes').upsert(linhas);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Configurações do app salvas');
+      qc.invalidateQueries({ queryKey: ['config'] });
+    },
+    onError: (e) => toast.error(mensagemErro(e)),
+  });
+
+  if (cfg.isLoading) return <Carregando />;
+  const temLocal = v.lat && v.lng;
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Cartao titulo="Distribuição automática">
+        <div className="space-y-4">
+          <label className="flex items-start gap-3">
+            <input type="checkbox" className="mt-1 h-5 w-5" checked={v.automatico} onChange={(e) => setV({ ...v, automatico: e.target.checked })} />
+            <span>
+              <strong>Enviar chamados automaticamente para o app</strong>
+              <span className="block text-sm text-slate-500">
+                O chamado vai para o maqueiro livre há mais tempo (urgente: para todos os livres). Desligado, a Central distribui como antes.
+              </span>
+            </span>
+          </label>
+          <Campo rotulo="Tempo para aceitar (segundos)" htmlFor="app_timeout" dica="Passado esse tempo, o chamado vai para o próximo da fila.">
+            <Entrada id="app_timeout" type="number" min={30} max={600} value={v.timeout} onChange={(e) => setV({ ...v, timeout: e.target.value })} />
+          </Campo>
+          <Campo rotulo="Feriados (o CC recebe chamados do hospital)" htmlFor="app_feriados" dica="Um por linha, no formato dd/mm/aaaa. Sábados e domingos já contam automaticamente.">
+            <AreaTexto id="app_feriados" rows={8} value={v.feriados} onChange={(e) => setV({ ...v, feriados: e.target.value })} />
+          </Campo>
+        </div>
+      </Cartao>
+      <Cartao titulo="Local do hospital (para iniciar a jornada)">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            O maqueiro só consegue iniciar a jornada se o GPS do celular estiver dentro deste raio. Estando no hospital, toque em “Usar minha localização atual”.
+          </p>
+          <Botao variante="secundario" carregando={localizando} onClick={usarLocalAtual}>
+            📍 Usar minha localização atual
+          </Botao>
+          <div className="grid grid-cols-2 gap-3">
+            <Campo rotulo="Latitude" htmlFor="app_lat">
+              <Entrada id="app_lat" inputMode="decimal" value={v.lat} onChange={(e) => setV({ ...v, lat: e.target.value })} placeholder="-5.8…" />
+            </Campo>
+            <Campo rotulo="Longitude" htmlFor="app_lng">
+              <Entrada id="app_lng" inputMode="decimal" value={v.lng} onChange={(e) => setV({ ...v, lng: e.target.value })} placeholder="-35.2…" />
+            </Campo>
+          </div>
+          <Campo rotulo="Raio permitido (metros)" htmlFor="app_raio" dica="300 m cobre o prédio e o estacionamento com folga para a imprecisão do GPS.">
+            <Entrada id="app_raio" type="number" min={50} max={2000} value={v.raio} onChange={(e) => setV({ ...v, raio: e.target.value })} />
+          </Campo>
+          {temLocal ? (
+            <a
+              className="text-sm text-marca-600 underline"
+              href={`https://www.google.com/maps?q=${v.lat.replace(',', '.')},${v.lng.replace(',', '.')}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Conferir o ponto no mapa
+            </a>
+          ) : (
+            <p className="text-sm font-semibold text-orange-700">Local ainda não configurado: os maqueiros não conseguem iniciar a jornada.</p>
+          )}
+        </div>
+      </Cartao>
+      <div className="lg:col-span-2">
+        <Botao onClick={() => salvar.mutate()} carregando={salvar.isPending}>
+          Salvar configurações do app
+        </Botao>
+      </div>
     </div>
   );
 }

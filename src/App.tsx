@@ -15,6 +15,7 @@ const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage').th
 const CapacidadePage = lazy(() => import('@/features/capacidade/CapacidadePage').then((m) => ({ default: m.CapacidadePage })));
 const RelatoriosPage = lazy(() => import('@/features/relatorios/RelatoriosPage').then((m) => ({ default: m.RelatoriosPage })));
 const EscalaPage = lazy(() => import('@/features/escala/EscalaPage').then((m) => ({ default: m.EscalaPage })));
+const AppMaqueiroPage = lazy(() => import('@/features/app-maqueiro/AppMaqueiroPage').then((m) => ({ default: m.AppMaqueiroPage })));
 const RegistrosPage = lazy(() => import('@/features/registros/RegistrosPage').then((m) => ({ default: m.RegistrosPage })));
 const HistoricoPage = lazy(() => import('@/features/historico/HistoricoPage').then((m) => ({ default: m.HistoricoPage })));
 const ConfiguracoesPage = lazy(() => import('@/features/config/ConfiguracoesPage').then((m) => ({ default: m.ConfiguracoesPage })));
@@ -29,7 +30,7 @@ function Protegida({ papeis, children }: { papeis: Papel[]; children: ReactNode 
 function Inicio() {
   const { perfil } = useAuth();
   if (!perfil) return <Navigate to="/login" replace />;
-  return <Navigate to={perfil.papel === 'setor' ? '/meus-chamados' : '/central'} replace />;
+  return <Navigate to={perfil.papel === 'setor' ? '/meus-chamados' : perfil.papel === 'maqueiro' ? '/app' : '/central'} replace />;
 }
 
 const G: Papel[] = ['gestao'];
@@ -44,7 +45,12 @@ export function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/cadastro" element={perfil ? <Navigate to="/" replace /> : <CadastroPage />} />
-          {perfil ? (
+          {perfil?.papel === 'maqueiro' ? (
+            <>
+              <Route path="/app" element={<AppMaqueiroPage />} />
+              <Route path="*" element={<Navigate to="/app" replace />} />
+            </>
+          ) : perfil ? (
             <Route element={<Layout />}>
               <Route index element={<Inicio />} />
               <Route path="central" element={<Protegida papeis={GT}><CentralPage /></Protegida>} />

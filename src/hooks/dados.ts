@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, buscarTudo } from '@/lib/supabase';
 import { agora, localParaIso, hojeLocal } from '@/lib/tempo';
 import { ABERTOS } from '@/lib/regras';
-import type { ChamadoMetrica, IntervaloRegistro, Json } from '@/types/database';
+import type { ChamadoMetrica, IntervaloRegistro, Jornada, Json, Oferta } from '@/types/database';
 
 export function useSetores() {
   return useQuery({
@@ -127,6 +127,8 @@ export function useRealtimeSync(ativo: boolean) {
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'maqueiros' }, () => invalidar('painel', 'maqueiros'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'intervalos' }, () => invalidar('painel', 'intervalos'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ofertas' }, () => invalidar('ofertas'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jornadas' }, () => invalidar('jornadas', 'painel'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'escala_dias' }, () => invalidar('painel', 'escala', 'capacidade'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracoes' }, () => invalidar('config', 'capacidade'))
       .subscribe((status) => {
@@ -161,5 +163,46 @@ export function useIntervalosPeriodo(de: string, ate: string, habilitado = true)
       buscarTudo<IntervaloRegistro>((i, f) =>
         supabase.from('vw_intervalos').select('*').gte('inicio', de).lt('inicio', ate).order('inicio').range(i, f),
       ),
+  });
+}
+
+/** Ofertas do app nas últimas 24 h (Central acompanha a distribuição automática). */
+export function useOfertasRecentes() {
+  return useQuery({
+    queryKey: ['ofertas', 'recentes'],
+    queryFn: async () => {
+      const desde = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      const { data, error } = await supabase.from('vw_ofertas').select('*').gte('enviada_em', desde).order('enviada_em');
+      if (error) throw error;
+      return data as Oferta[];
+    },
+    refetchInterval: 10_000,
+  });
+}
+
+/** Jornadas abertas no app (quem está com o app ligado). */
+export function useJornadasAbertas() {
+  return useQuery({
+    queryKey: ['jornadas', 'abertas'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('vw_jornadas').select('*').is('fim', null);
+      if (error) throw error;
+      return data as Jornada[];
+    },
+    refetchInterval: 30_000,
+  });
+}
+
+/** Ofertas e jornadas de um período (Dashboard → App). */
+export function useDespachoPeriodo(de: string, ate: string) {
+  return useQuery({
+    queryKey: ['ofertas', 'periodo', de, ate],
+    queryFn: async () => {
+      const [o, j] = await Promise.all([
+        buscarTudo<Oferta>((i, f) => supabase.from('vw_ofertas').select('*').gte('enviada_em', de).lt('enviada_em', ate).order('enviada_em').range(i, f)),
+        buscarTudo<Jornada>((i, f) => supabase.from('vw_jornadas').select('*').gte('inicio', de).lt('inicio', ate).order('inicio').range(i, f)),
+      ]);
+      return { ofertas: o, jornadas: j };
+    },
   });
 }

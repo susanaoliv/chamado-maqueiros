@@ -37,7 +37,8 @@ export function NovoChamadoForm({ aoConcluir }: { aoConcluir: () => void }) {
       zodResolver(
         schemaNovoChamado({
           setores: ativos,
-          papel: perfil.papel,
+          // o formulário não é usado pelo perfil maqueiro
+          papel: perfil.papel === 'maqueiro' ? 'setor' : perfil.papel,
           somenteNumeroAtendimento: config?.somenteNumeroAtendimento ?? false,
         }),
       ),

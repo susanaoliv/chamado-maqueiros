@@ -34,7 +34,19 @@ type ChamadoRow = {
   cancelado_por: string | null;
   criado_por: string | null;
   encerrado_por: string | null;
+  despacho_reiniciado_em: string | null;
+  despacho_esgotado_em: string | null;
   created_at: string;
+};
+
+type OfertaRow = {
+  id: string; chamado_id: string; maqueiro_id: string; enviada_em: string; expira_em: string;
+  status: 'pendente' | 'aceita' | 'recusada' | 'expirada' | 'cancelada'; respondida_em: string | null;
+  justificativa: string | null; urgente: boolean;
+};
+type JornadaRow = {
+  id: string; maqueiro_id: string; inicio: string; fim: string | null; lat: number | null; lng: number | null;
+  precisao_m: number | null; distancia_m: number | null; encerrada_por: string | null; created_at: string;
 };
 
 type MetricaExtra = {
@@ -75,7 +87,7 @@ export type Database = {
       setores: Tabela<{ id: string; nome: string; ativo: boolean; exige_leito: boolean; ordem: number; created_at: string }>;
       perfis: Tabela<{
         id: string; usuario: string; papel: string; setor_id: string | null; nome: string; ativo: boolean;
-        aprovado_em: string | null; aprovado_por: string | null; created_at: string;
+        aprovado_em: string | null; aprovado_por: string | null; maqueiro_id: string | null; created_at: string;
       }>;
       maqueiros: Tabela<{
         id: string; nome: string; matricula: string | null; turno: string; horario_inicio: string; horario_fim: string;
@@ -91,6 +103,8 @@ export type Database = {
         criado_por: string | null; encerrado_por: string | null; created_at: string;
       }>;
       chamados: Tabela<ChamadoRow>;
+      ofertas: Tabela<OfertaRow>;
+      jornadas: Tabela<JornadaRow>;
       intervalos: Tabela<{
         id: string; maqueiro_id: string; inicio: string; fim: string | null; criado_por: string | null;
         encerrado_por: string | null; created_at: string;
@@ -109,6 +123,14 @@ export type Database = {
         Relationships: [];
       };
       vw_historico: { Row: EventoRow & { chamado_numero: string | null }; Relationships: [] };
+      vw_ofertas: {
+        Row: OfertaRow & { maqueiro_nome: string; chamado_numero: string; data_local: string; hora: number; segundos_resposta: number | null };
+        Relationships: [];
+      };
+      vw_jornadas: {
+        Row: JornadaRow & { maqueiro_nome: string; data_local: string; em_andamento: boolean; horas: number };
+        Relationships: [];
+      };
       vw_intervalos: {
         Row: {
           id: string; maqueiro_id: string; maqueiro_nome: string; inicio: string; fim: string | null;
@@ -120,6 +142,13 @@ export type Database = {
     };
     Functions: {
       agora_servidor: { Args: Record<string, never>; Returns: string };
+      app_maqueiro_estado: { Args: Record<string, never>; Returns: Json };
+      processar_despacho: { Args: Record<string, never>; Returns: number };
+      iniciar_jornada: { Args: { p_lat: number; p_lng: number; p_precisao?: number | null }; Returns: JornadaRow };
+      encerrar_jornada: { Args: { p_maqueiro_id?: string | null }; Returns: undefined };
+      aceitar_oferta: { Args: { p_oferta_id: string }; Returns: ChamadoRow };
+      recusar_oferta: { Args: { p_oferta_id: string; p_justificativa: string }; Returns: undefined };
+      redistribuir_chamado: { Args: { p_chamado_id: string }; Returns: undefined };
       papel_atual: { Args: Record<string, never>; Returns: string };
       abrir_chamado: {
         Args: {
@@ -193,6 +222,8 @@ export type Indisponibilidade = T['indisponibilidades']['Row'];
 export type Chamado = ChamadoRow;
 export type ChamadoMetrica = Database['public']['Views']['vw_chamados_metricas']['Row'];
 export type Evento = Database['public']['Views']['vw_historico']['Row'];
+export type Oferta = Database['public']['Views']['vw_ofertas']['Row'];
+export type Jornada = Database['public']['Views']['vw_jornadas']['Row'];
 export type IntervaloRegistro = Database['public']['Views']['vw_intervalos']['Row'];
 export type PainelMaqueiro = Database['public']['Functions']['painel_maqueiros']['Returns'][number];
 export type CapacidadeHora = Database['public']['Functions']['capacidade_dia']['Returns'][number];

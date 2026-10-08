@@ -9,13 +9,15 @@ export const schemaCadastro = z
       .string()
       .transform((v) => normalizar(v))
       .pipe(z.string().min(3, 'Use de 3 a 40 letras ou números').max(40, 'Use de 3 a 40 letras ou números')),
-    papel: z.enum(['telefonista', 'setor', 'gestao'], { message: 'Escolha o perfil' }),
+    papel: z.enum(['telefonista', 'setor', 'gestao', 'maqueiro'], { message: 'Escolha o perfil' }),
     setor_id: z.string(),
+    maqueiro_id: z.string(),
     senha: z.string().min(8, 'A senha precisa ter pelo menos 8 caracteres'),
     confirmacao: z.string(),
   })
   .superRefine((v, c) => {
     if (v.papel === 'setor' && !v.setor_id) c.addIssue({ code: 'custom', path: ['setor_id'], message: 'Escolha o setor' });
+    if (v.papel === 'maqueiro' && !v.maqueiro_id) c.addIssue({ code: 'custom', path: ['maqueiro_id'], message: 'Escolha seu nome na lista' });
     if (v.senha !== v.confirmacao) c.addIssue({ code: 'custom', path: ['confirmacao'], message: 'As senhas não conferem' });
   });
 
@@ -40,6 +42,9 @@ async function chamar<T>(body: Record<string, unknown>): Promise<T> {
 
 export const listarSetoresPublico = () => chamar<{ setores: { id: string; nome: string }[] }>({ acao: 'setores' }).then((r) => r.setores);
 
+export const listarMaqueirosPublico = () =>
+  chamar<{ maqueiros: { id: string; nome: string }[] }>({ acao: 'maqueiros' }).then((r) => r.maqueiros);
+
 export const enviarCadastro = (v: CadastroSaida) =>
   chamar<{ usuario: string; papel: string; aprovado: boolean }>({
     acao: 'cadastrar',
@@ -48,4 +53,5 @@ export const enviarCadastro = (v: CadastroSaida) =>
     senha: v.senha,
     papel: v.papel,
     setor_id: v.papel === 'setor' ? v.setor_id : null,
+    maqueiro_id: v.papel === 'maqueiro' ? v.maqueiro_id : null,
   });

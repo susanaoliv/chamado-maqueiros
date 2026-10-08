@@ -14,6 +14,7 @@ for f in supabase/migrations/*.sql; do
 done
 psql "$URL" -q -v ON_ERROR_STOP=1 -f supabase/seed.sql
 psql "$URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_e_regras.sql
+psql "$URL" -v ON_ERROR_STOP=1 -f supabase/tests/despacho_app.sql
 
 # Critério 4: número nunca repete, mesmo com abertura simultânea (500 chamados em 20 conexões)
 psql "$URL" -q -c "insert into auth.users(id,email) values ('00000000-0000-0000-0000-0000000000c1','carga@maqueiros.cssl');

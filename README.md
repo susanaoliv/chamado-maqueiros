@@ -155,6 +155,26 @@ planilha de cada mês.
 | `telefonista` (Central) | Central, Painel, Maqueiros, Registros | abrir, distribuir maqueiros, mudar status, encerrar, cancelar; habilitar/desabilitar, indisponível, iniciar/encerrar intervalo; consultar registros com horários e linha do tempo, exportar |
 | `gestao` (Gestão NIR) | todas | tudo acima + dashboard (inclui aba Intervalos), capacidade, relatórios e exportação, escala, histórico, correções, configurações e acessos |
 
+| `maqueiro` (app no celular) | App (`/app`) | iniciar/encerrar jornada (GPS dentro do hospital e escala/habilitação), receber, aceitar ou recusar chamados, atualizar andamento, concluir, intervalo |
+
+**App do maqueiro e distribuição automática** (migration 9):
+- O maqueiro se cadastra como "Maqueiro", escolhe o próprio nome da escala e a gestão aprova. No celular,
+  abre o site e usa "Adicionar à tela inicial" (vira app, abre em tela cheia).
+- **Iniciar jornada** só funciona se ele estiver na escala/habilitado pela Central **e** dentro do raio do
+  hospital (GPS). Local e raio: Configurações → App dos maqueiros (botão "Usar minha localização atual").
+- Chamado aberto → oferecido ao maqueiro **livre há mais tempo** (fila de táxi), com **90 s** para aceitar
+  (configurável). Recusa exige motivo e passa ao próximo; sem resposta também passa ao próximo.
+  **Urgente** é oferecido a todos os livres ao mesmo tempo; o primeiro que aceitar leva.
+- Maqueiros do **CC** recebem chamados do CC; em **sábados, domingos e feriados** também os do hospital.
+  Feriados: Configurações → App dos maqueiros (os nacionais de 2026 já vêm cadastrados; inclua os de Natal/RN).
+- Se ninguém aceitar ou não houver maqueiro livre no app, o card da Central avisa para direcionar
+  manualmente ("Tentar de novo no app" recomeça a fila). A Central continua podendo acionar qualquer um.
+- Celular pessoal: o app mostra só as iniciais do paciente (ou o nº do atendimento) e não acessa a lista de
+  chamados do hospital.
+- Nesta etapa o aviso de chamado (som + vibração) funciona com o app aberto na tela; a tela fica acesa
+  durante a jornada. Notificação com o celular bloqueado é a próxima etapa (Web Push).
+- Dados: tabelas `jornadas` e `ofertas`, views `vw_jornadas` e `vw_ofertas`; Dashboard → aba **App**.
+
 **Intervalos:** cada "Iniciar/Encerrar intervalo" vira um registro (tabela `intervalos`, view `vw_intervalos`)
 com início, fim e quem registrou. Só é possível iniciar intervalo de quem está de plantão ou habilitado.
 Os dados aparecem em Maqueiros (tempo correndo e total do dia), Dashboard → Intervalos e nos Relatórios.

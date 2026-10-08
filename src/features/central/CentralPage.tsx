@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Botao, Carregando, Erro, Modal, Vazio } from '@/components/ui';
-import { useAgora, useChamadosOperacao, useConfig, usePainelMaqueiros } from '@/hooks/dados';
+import { useAgora, useChamadosOperacao, useConfig, useOfertasRecentes, usePainelMaqueiros } from '@/hooks/dados';
 import { ChamadoCard, ordenarFila } from '@/features/chamados/ChamadoCard';
 import { NovoChamadoForm } from '@/features/chamados/NovoChamadoForm';
 import { estaAberto, estaAtrasado } from '@/lib/regras';
@@ -11,7 +11,8 @@ import { IndicadoresDia } from './PainelCentralPage';
 
 export function CentralPage() {
   const [novo, setNovo] = useState(false);
-  const agora = useAgora(15000);
+  const agora = useAgora(5000);
+  const { data: ofertas = [] } = useOfertasRecentes();
   const { data: chamados, isLoading, error } = useChamadosOperacao();
   const { data: config } = useConfig();
   const { data: painel = [] } = usePainelMaqueiros();
@@ -68,7 +69,7 @@ export function CentralPage() {
         {!isLoading && fila.length === 0 && <Vazio>Nenhum chamado em aberto. 👍</Vazio>}
         <div className="grid gap-3 xl:grid-cols-2">
           {fila.map((c) => (
-            <ChamadoCard key={c.id} c={c} sla={sla} agora={agora} modo="central" maqueiros={painel} />
+            <ChamadoCard key={c.id} c={c} sla={sla} agora={agora} modo="central" maqueiros={painel} ofertas={ofertas.filter((o) => o.chamado_id === c.id)} />
           ))}
         </div>
       </section>
