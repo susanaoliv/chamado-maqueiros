@@ -95,6 +95,16 @@ arquivo.** Depois disso, a gestão cria logins e troca senhas pela tela **Config
 > O login é por usuário + senha. Internamente o Supabase usa o e-mail sintético
 > `usuario@maqueiros.cssl`, que nunca aparece na tela.
 
+### 2.4.1 Autocadastro (página "Cadastre-se")
+
+Na tela de login há o link **Cadastre-se** (`/cadastro`). A pessoa informa nome, perfil
+(setor, telefonista ou gestão), setor, usuário e senha (mínimo 8 caracteres).
+
+- O **primeiro cadastro do sistema** vira **gestão** já aprovada (serve para começar com o banco vazio).
+- Os demais ficam **aguardando aprovação**: sem acesso a nada até a gestão aprovar em
+  **Configurações → Acessos**, onde é possível ajustar perfil e setor antes de aprovar, ou recusar.
+- Publicar a função: `supabase functions deploy cadastro --no-verify-jwt` (ela não depende de login).
+
 ### 2.5 Publicar o front
 
 ```bash

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { Botao, Campo, Entrada } from '@/components/ui';
 import { useAuth } from './AuthProvider';
 import { mensagemErro } from '@/lib/erros';
@@ -16,7 +16,7 @@ const schema = z.object({
 type Form = z.infer<typeof schema>;
 
 export function LoginPage() {
-  const { entrar, perfil, semPerfil, sair } = useAuth();
+  const { entrar, perfil, semPerfil, pendente, sair } = useAuth();
   const [erro, setErro] = useState<string | null>(null);
   const { register, handleSubmit, formState } = useForm<Form>({
     resolver: zodResolver(schema),
@@ -64,7 +64,9 @@ export function LoginPage() {
           )}
           {semPerfil && (
             <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
-              Este usuário não tem acesso liberado ao sistema. Procure a gestão.{' '}
+              {pendente
+                ? 'Seu cadastro foi recebido e está aguardando a aprovação da gestão.'
+                : 'Este usuário não tem acesso liberado ao sistema. Procure a gestão.'}{' '}
               <button type="button" className="underline" onClick={() => sair()}>
                 Sair
               </button>
@@ -73,6 +75,12 @@ export function LoginPage() {
           <Botao type="submit" tamanho="lg" className="w-full" carregando={formState.isSubmitting}>
             Entrar
           </Botao>
+          <p className="text-center text-sm text-slate-600 dark:text-slate-300">
+            Ainda não tem acesso?{' '}
+            <Link to="/cadastro" className="font-semibold text-marca-600 underline">
+              Cadastre-se
+            </Link>
+          </p>
         </form>
       </div>
     </main>

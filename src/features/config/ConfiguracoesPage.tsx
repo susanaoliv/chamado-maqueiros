@@ -200,9 +200,49 @@ function Acessos() {
     onError: (e) => toast.error(mensagemErro(e)),
   });
   const setorNome = (id: string | null) => setores.find((s) => s.id === id)?.nome ?? '';
+  const [editando, setEditando] = useState<(Perfil & { aprovar?: boolean }) | null>(null);
+  const pendentes = (lista.data ?? []).filter((p) => !p.ativo && !p.aprovado_em);
+  const demais = (lista.data ?? []).filter((p) => p.ativo || p.aprovado_em);
+  const NOME_PAPEL: Record<string, string> = { gestao: 'Gestão', telefonista: 'Telefonista', setor: 'Setor' };
 
   return (
     <div className="space-y-4">
+      {pendentes.length > 0 && (
+        <Cartao titulo={`⏳ Cadastros aguardando aprovação (${pendentes.length})`}>
+          <Tabela>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Usuário</th>
+                <th>Perfil pedido</th>
+                <th>Setor</th>
+                <th>Pedido em</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {pendentes.map((p) => (
+                <tr key={p.id}>
+                  <td className="font-semibold">{p.nome}</td>
+                  <td className="font-mono">{p.usuario}</td>
+                  <td>{NOME_PAPEL[p.papel] ?? p.papel}</td>
+                  <td>{setorNome(p.setor_id)}</td>
+                  <td className="whitespace-nowrap">{new Date(p.created_at).toLocaleString('pt-BR')}</td>
+                  <td className="flex gap-2">
+                    <Botao tamanho="sm" variante="sucesso" onClick={() => setEditando({ ...p, aprovar: true })}>
+                      Aprovar
+                    </Botao>
+                    <Botao tamanho="sm" variante="secundario" onClick={() => acao.mutate({ acao: 'ativar', usuario: p.usuario, ativo: false })}>
+                      Recusar
+                    </Botao>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Tabela>
+        </Cartao>
+      )}
+
       <Cartao titulo="Criar acesso">
         <div className="grid gap-3 sm:grid-cols-4">
           <Campo rotulo="Perfil" htmlFor="ac_papel">
@@ -267,14 +307,17 @@ function Acessos() {
             </tr>
           </thead>
           <tbody>
-            {(lista.data ?? []).map((p) => (
+            {demais.map((p) => (
               <tr key={p.id} className={!p.ativo ? 'opacity-50' : ''}>
                 <td className="font-mono">{p.usuario}</td>
-                <td>{p.papel}</td>
+                <td>{NOME_PAPEL[p.papel] ?? p.papel}</td>
                 <td>{p.nome}</td>
                 <td>{setorNome(p.setor_id)}</td>
                 <td>{p.ativo ? 'Ativo' : 'Bloqueado'}</td>
                 <td className="flex gap-2">
+                  <Botao tamanho="sm" variante="secundario" onClick={() => setEditando(p)}>
+                    Perfil
+                  </Botao>
                   <Botao tamanho="sm" variante="secundario" onClick={() => acao.mutate({ acao: 'redefinir', usuario: p.usuario })}>
                     Nova senha
                   </Botao>
@@ -286,6 +329,27 @@ function Acessos() {
             ))}
           </tbody>
         </Tabela>
+      )}
+
+      {editando && (
+        <Modal aberto aoFechar={() => setEditando(null)} titulo={editando.aprovar ? `Aprovar ${editando.nome}` : `Perfil de ${editando.usuario}`}>
+          <PerfilForm
+            inicial={editando}
+            setores={setores.filter((s) => s.ativo)}
+            textoBotao={editando.aprovar ? 'Aprovar acesso' : 'Salvar'}
+            aoSalvar={async (v) => {
+              try {
+                await adminUsuarios({ acao: 'alterar', usuario: editando.usuario, ...v });
+                if (editando.aprovar) await adminUsuarios({ acao: 'ativar', usuario: editando.usuario, ativo: true });
+                toast.success(editando.aprovar ? 'Acesso aprovado' : 'Perfil atualizado');
+                qc.invalidateQueries({ queryKey: ['acessos'] });
+                setEditando(null);
+              } catch (e) {
+                toast.error(mensagemErro(e));
+              }
+            }}
+          />
+        </Modal>
       )}
 
       {senha && (
@@ -301,6 +365,61 @@ function Acessos() {
           </Botao>
         </Modal>
       )}
+    </div>
+  );
+}
+
+function PerfilForm({
+  inicial,
+  setores,
+  textoBotao,
+  aoSalvar,
+}: {
+  inicial: Perfil;
+  setores: Setor[];
+  textoBotao: string;
+  aoSalvar: (v: { papel: string; setor_id: string | null; nome: string }) => Promise<void>;
+}) {
+  const [papel, setPapel] = useState(inicial.papel);
+  const [setorId, setSetorId] = useState(inicial.setor_id ?? '');
+  const [nome, setNome] = useState(inicial.nome);
+  const [salvando, setSalvando] = useState(false);
+  const valido = nome.trim().length >= 2 && (papel !== 'setor' || !!setorId);
+  return (
+    <div className="space-y-3">
+      <Campo rotulo="Nome" htmlFor="pf_nome">
+        <Entrada id="pf_nome" value={nome} onChange={(e) => setNome(e.target.value)} />
+      </Campo>
+      <Campo rotulo="Perfil" htmlFor="pf_papel">
+        <Selecao id="pf_papel" value={papel} onChange={(e) => setPapel(e.target.value)}>
+          <option value="setor">Setor (enfermagem)</option>
+          <option value="telefonista">Telefonista</option>
+          <option value="gestao">Gestão</option>
+        </Selecao>
+      </Campo>
+      {papel === 'setor' && (
+        <Campo rotulo="Setor" htmlFor="pf_setor">
+          <Selecao id="pf_setor" value={setorId} onChange={(e) => setSetorId(e.target.value)}>
+            <option value="">Selecione…</option>
+            {setores.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.nome}
+              </option>
+            ))}
+          </Selecao>
+        </Campo>
+      )}
+      <Botao
+        disabled={!valido}
+        carregando={salvando}
+        onClick={async () => {
+          setSalvando(true);
+          await aoSalvar({ papel, setor_id: papel === 'setor' ? setorId : null, nome: nome.trim() });
+          setSalvando(false);
+        }}
+      >
+        {textoBotao}
+      </Botao>
     </div>
   );
 }

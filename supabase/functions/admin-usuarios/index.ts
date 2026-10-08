@@ -3,7 +3,8 @@
 //   listar                                  → perfis cadastrados
 //   criar     { usuario, papel, nome, setor_id? }  → cria login e devolve senha aleatória
 //   redefinir { usuario }                   → nova senha aleatória
-//   ativar    { usuario, ativo }            → bloqueia/desbloqueia o login (nunca exclui)
+//   ativar    { usuario, ativo }            → aprova/desbloqueia ou recusa/bloqueia o login (nunca exclui)
+//   alterar   { usuario, papel, setor_id?, nome? } → ajusta perfil e setor (ex.: ao aprovar um autocadastro)
 // A service_role só existe aqui (variável de ambiente do Supabase), nunca no front.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
   if (acao === 'listar') {
     const { data, error } = await admin
       .from('perfis')
-      .select('id, usuario, papel, nome, setor_id, ativo, created_at')
+      .select('id, usuario, papel, nome, setor_id, ativo, aprovado_em, aprovado_por, created_at')
       .order('papel')
       .order('usuario');
     if (error) return resposta({ erro: error.message }, 500);
@@ -99,6 +100,8 @@ Deno.serve(async (req) => {
       papel,
       nome,
       setor_id: papel === 'setor' ? setorId : null,
+      aprovado_em: new Date().toISOString(),
+      aprovado_por: perfilChamador.usuario,
     });
     if (perfilErr) {
       // desfaz o login sem perfil para não deixar conta órfã
@@ -126,10 +129,33 @@ Deno.serve(async (req) => {
     }
     const { data: perfil } = await admin.from('perfis').select('id').eq('usuario', usuario).maybeSingle();
     if (!perfil) return resposta({ erro: 'Usuário não encontrado' }, 404);
-    await admin.from('perfis').update({ ativo }).eq('id', perfil.id);
+    // aprovado_em marca que a gestão já decidiu (aprovou ou recusou) o acesso
+    await admin
+      .from('perfis')
+      .update({ ativo, aprovado_em: new Date().toISOString(), aprovado_por: perfilChamador.usuario })
+      .eq('id', perfil.id);
     // bloqueio no Auth também (encerra novos logins)
     await admin.auth.admin.updateUserById(perfil.id, { ban_duration: ativo ? 'none' : '876000h' });
     return resposta({ usuario, ativo });
+  }
+
+  if (acao === 'alterar') {
+    const usuario = normalizarUsuario(String(body.usuario ?? ''));
+    const papel = String(body.papel ?? '');
+    const setorId = body.setor_id ? String(body.setor_id) : null;
+    const nome = body.nome === undefined ? undefined : String(body.nome).trim();
+    if (!['gestao', 'telefonista', 'setor'].includes(papel)) return resposta({ erro: 'Papel inválido' }, 400);
+    if (papel === 'setor' && !setorId) return resposta({ erro: 'Informe o setor' }, 400);
+    if (usuario === perfilChamador.usuario && papel !== 'gestao') {
+      return resposta({ erro: 'Você não pode tirar o próprio perfil de gestão' }, 400);
+    }
+    const { data: perfil } = await admin.from('perfis').select('id').eq('usuario', usuario).maybeSingle();
+    if (!perfil) return resposta({ erro: 'Usuário não encontrado' }, 404);
+    const dados: Record<string, unknown> = { papel, setor_id: papel === 'setor' ? setorId : null };
+    if (nome) dados.nome = nome;
+    const { error } = await admin.from('perfis').update(dados).eq('id', perfil.id);
+    if (error) return resposta({ erro: error.message }, 400);
+    return resposta({ usuario, papel });
   }
 
   return resposta({ erro: 'Ação desconhecida' }, 400);
