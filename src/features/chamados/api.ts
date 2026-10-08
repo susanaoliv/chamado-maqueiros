@@ -23,6 +23,8 @@ function useRpc<K extends keyof Fn>(nome: K, opts?: { sucesso?: (r: Fn[K]['Retur
       qc.invalidateQueries({ queryKey: ['habilitacoes'] });
       qc.invalidateQueries({ queryKey: ['indisponibilidades'] });
       qc.invalidateQueries({ queryKey: ['historico'] });
+      qc.invalidateQueries({ queryKey: ['ofertas'] });
+      qc.invalidateQueries({ queryKey: ['jornadas'] });
       const msg = opts?.sucesso?.(r);
       if (msg) toast.success(msg);
     },
@@ -44,3 +46,5 @@ export const useDesabilitar = () => useRpc('desabilitar_maqueiro', { sucesso: ()
 export const useIndisponivel = () => useRpc('marcar_indisponivel', { sucesso: () => 'Maqueiro marcado como indisponível' });
 export const useDisponibilizar = () => useRpc('disponibilizar_maqueiro', { sucesso: () => 'Maqueiro disponível novamente' });
 export const useIntervalo = () => useRpc('definir_intervalo', { sucesso: () => 'Intervalo atualizado' });
+export const useRedistribuir = () => useRpc('redistribuir_chamado', { sucesso: () => 'Chamado reenviado para a fila do app' });
+export const useEncerrarJornada = () => useRpc('encerrar_jornada', { sucesso: () => 'Jornada encerrada' });

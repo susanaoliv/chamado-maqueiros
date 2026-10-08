@@ -7,7 +7,7 @@ import { DOMINIO_LOGIN } from '@/lib/constantes';
 import { normalizar } from '@/lib/regras';
 import type { Perfil } from '@/types/database';
 
-export type Papel = 'gestao' | 'telefonista' | 'setor';
+export type Papel = 'gestao' | 'telefonista' | 'setor' | 'maqueiro';
 
 type Ctx = {
   carregando: boolean;

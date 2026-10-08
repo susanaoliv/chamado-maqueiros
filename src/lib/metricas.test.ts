@@ -103,3 +103,33 @@ describe('intervalos', () => {
     expect(intervalosPorHora(linhas)[13].total).toBe(2);
   });
 });
+
+describe('app: ofertas', () => {
+  const o = (status: string, maqueiro_nome = 'A', justificativa: string | null = null, segundos_resposta: number | null = null) => ({ status, maqueiro_nome, justificativa, segundos_resposta, urgente: false });
+  it('resume aceites, recusas e tempo de aceite (canceladas fora da taxa)', async () => {
+    const { resumoOfertas, motivosRecusa, ofertasPorMaqueiro } = await import('./metricas');
+    const l = [o('aceita', 'A', null, 20), o('aceita', 'B', null, 40), o('recusada', 'A', 'Banheiro / necessidade pessoal: rápido'), o('expirada', 'B'), o('cancelada', 'C')];
+    const r = resumoOfertas(l);
+    expect(r).toMatchObject({ enviadas: 5, aceitas: 2, recusadas: 1, expiradas: 1, segundosAceiteMedio: 30 });
+    expect(r.pctAceite).toBe(50);
+    expect(motivosRecusa(l)).toEqual([{ chave: 'Banheiro / necessidade pessoal', total: 1 }]);
+    expect(ofertasPorMaqueiro(l).find((x) => x.chave === 'B')).toMatchObject({ aceitas: 1, expiradas: 1 });
+  });
+  it('contagem regressiva e resumo para a Central', async () => {
+    const { segundosRestantes, resumoDespacho } = await import('@/features/app-maqueiro/oferta');
+    const agora = new Date('2026-10-08T12:00:00Z');
+    expect(segundosRestantes('2026-10-08T12:01:30Z', agora)).toBe(90);
+    expect(segundosRestantes('2026-10-08T11:59:00Z', agora)).toBe(0);
+    const r = resumoDespacho(
+      [
+        { status: 'recusada', maqueiro_nome: 'A', expira_em: '2026-10-08T11:59:00Z', justificativa: 'Banheiro', urgente: false },
+        { status: 'pendente', maqueiro_nome: 'B', expira_em: '2026-10-08T12:00:45Z', justificativa: null, urgente: false },
+      ],
+      null,
+      agora,
+    );
+    expect(r.principal).toBe('📱 Oferecido a B · 45s');
+    expect(r.recusas).toEqual(['A: Banheiro']);
+    expect(resumoDespacho([], '2026-10-08T11:58:00Z', agora).esgotado).toBe(true);
+  });
+});

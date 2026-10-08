@@ -6,8 +6,9 @@ import { MOTIVOS_ATRASO, STATUS_INFO, STATUS_INTERMEDIARIOS, type StatusChamado 
 import { estaAberto, estaAtrasado, exigeMotivoAtraso } from '@/lib/regras';
 import { fmtDuracao, fmtHora, minutosEntre } from '@/lib/tempo';
 import { exigeMotivoAtrasoErro, mensagemErro } from '@/lib/erros';
-import type { ChamadoMetrica, PainelMaqueiro } from '@/types/database';
-import { useAcionarMaqueiro, useCancelarChamado, useEncerrarChamado, useMudarStatus } from './api';
+import type { ChamadoMetrica, Oferta, PainelMaqueiro } from '@/types/database';
+import { resumoDespacho } from '@/features/app-maqueiro/oferta';
+import { useAcionarMaqueiro, useCancelarChamado, useEncerrarChamado, useMudarStatus, useRedistribuir } from './api';
 
 export function StatusSelo({ status, atrasado }: { status: string; atrasado?: boolean }) {
   const info = STATUS_INFO[status as StatusChamado] ?? STATUS_INFO.aguardando_maqueiro;
@@ -55,9 +56,10 @@ type Props = {
   agora: Date;
   modo: 'central' | 'setor';
   maqueiros?: PainelMaqueiro[];
+  ofertas?: Oferta[];
 };
 
-export function ChamadoCard({ c, sla, agora, modo, maqueiros = [] }: Props) {
+export function ChamadoCard({ c, sla, agora, modo, maqueiros = [], ofertas = [] }: Props) {
   const aberto = estaAberto(c.status);
   const atrasado = aberto && estaAtrasado(c, sla, agora);
   const decorrido = minutosEntre(c.aberto_em, aberto ? agora : (c.encerrado_em ?? c.cancelado_em));
@@ -69,6 +71,8 @@ export function ChamadoCard({ c, sla, agora, modo, maqueiros = [] }: Props) {
   const encerrar = useEncerrarChamado();
 
   const disponiveis = maqueiros.filter((m) => m.disponivel_para_acionar);
+  const redistribuir = useRedistribuir();
+  const despacho = aberto && c.status === 'aguardando_maqueiro' && modo === 'central' ? resumoDespacho(ofertas, c.despacho_esgotado_em, agora) : null;
 
   const tentarEncerrar = async () => {
     if (exigeMotivoAtraso(c.aberto_em, sla, agora)) {
@@ -122,6 +126,26 @@ export function ChamadoCard({ c, sla, agora, modo, maqueiros = [] }: Props) {
         </div>
       )}
       {c.observacao && <p className="mt-2 rounded bg-yellow-50 px-2 py-1 text-sm dark:bg-yellow-900/30">Obs.: {c.observacao}</p>}
+
+      {despacho && (despacho.principal || despacho.esgotado || despacho.recusas.length > 0 || despacho.expiradas.length > 0) && (
+        <div className="mt-2 space-y-1 rounded-lg bg-sky-50 p-2 text-sm dark:bg-sky-950/40">
+          {despacho.principal && <div className="font-semibold text-sky-800 dark:text-sky-200">{despacho.principal}</div>}
+          {despacho.esgotado && (
+            <div className="flex flex-wrap items-center gap-2 font-semibold text-orange-700 dark:text-orange-300">
+              ⚠ Nenhum maqueiro do app aceitou ou está livre: direcione manualmente.
+              <Botao tamanho="sm" variante="secundario" carregando={redistribuir.isPending} onClick={() => redistribuir.mutate({ p_chamado_id: c.id })}>
+                Tentar de novo no app
+              </Botao>
+            </div>
+          )}
+          {despacho.recusas.map((r, i) => (
+            <div key={i} className="text-xs text-slate-600 dark:text-slate-300">
+              ✋ Recusou · {r}
+            </div>
+          ))}
+          {despacho.expiradas.length > 0 && <div className="text-xs text-slate-500">⏱ Não respondeu: {despacho.expiradas.join(', ')}</div>}
+        </div>
+      )}
 
       {/* Linha do tempo resumida */}
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">

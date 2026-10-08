@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import clsx from 'clsx';
 import { AreaTexto, Botao, Campo, Carregando, Entrada, Erro, Modal, Selecao } from '@/components/ui';
-import { useAgora, usePainelMaqueiros } from '@/hooks/dados';
+import { useAgora, useJornadasAbertas, usePainelMaqueiros } from '@/hooks/dados';
 import { MOTIVOS_HABILITACAO, SITUACAO_MAQUEIRO, TIPOS_INDISPONIBILIDADE } from '@/lib/constantes';
 import { fmtDuracao, fmtHora, minutosEntre } from '@/lib/tempo';
-import { useDesabilitar, useDisponibilizar, useHabilitar, useIndisponivel, useIntervalo } from '@/features/chamados/api';
+import { useDesabilitar, useDisponibilizar, useEncerrarJornada, useHabilitar, useIndisponivel, useIntervalo } from '@/features/chamados/api';
 import type { PainelMaqueiro } from '@/types/database';
 
 const hhmm = (t: string | null | undefined) => (t ? t.slice(0, 5) : '');
@@ -17,6 +17,9 @@ export function MaqueirosPage() {
   const desabilitar = useDesabilitar();
   const intervalo = useIntervalo();
   const agora = useAgora(30000);
+  const { data: jornadas = [] } = useJornadasAbertas();
+  const encerrarJornada = useEncerrarJornada();
+  const jornadaDe = (id: string) => jornadas.find((j) => j.maqueiro_id === id);
 
   if (isLoading) return <Carregando />;
   if (error) return <Erro erro={error} />;
@@ -67,6 +70,11 @@ export function MaqueirosPage() {
                     </>
                   )}
                 </div>
+                {jornadaDe(m.maqueiro_id) ? (
+                  <div className="text-xs font-semibold text-sky-700 dark:text-sky-300">📱 App ligado desde {fmtHora(jornadaDe(m.maqueiro_id)!.inicio)}</div>
+                ) : (
+                  m.em_plantao && <div className="text-xs text-slate-400">📱 App desligado</div>
+                )}
                 {m.indisponibilidade_id && (
                   <div className="text-sm text-red-700 dark:text-red-300">
                     {m.indisponibilidade_tipo}: {m.indisponibilidade_justificativa}
@@ -107,6 +115,15 @@ export function MaqueirosPage() {
                       Indisponível
                     </Botao>
                   </>
+                )}
+                {jornadaDe(m.maqueiro_id) && (
+                  <Botao
+                    tamanho="sm"
+                    variante="fantasma"
+                    onClick={() => window.confirm(`Encerrar a jornada de ${m.nome} no app?`) && encerrarJornada.mutate({ p_maqueiro_id: m.maqueiro_id })}
+                  >
+                    Encerrar jornada
+                  </Botao>
                 )}
                 {m.indisponibilidade_id && (
                   <Botao tamanho="sm" variante="sucesso" carregando={disponibilizar.isPending} onClick={() => disponibilizar.mutate({ p_maqueiro_id: m.maqueiro_id })}>

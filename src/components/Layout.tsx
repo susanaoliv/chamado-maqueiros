@@ -5,7 +5,8 @@ import { useRealtimeSync } from '@/hooks/dados';
 
 type Item = { para: string; rotulo: string };
 
-export const MENU: Record<'gestao' | 'telefonista' | 'setor', Item[]> = {
+export const MENU: Record<'gestao' | 'telefonista' | 'setor' | 'maqueiro', Item[]> = {
+  maqueiro: [],
   telefonista: [
     { para: '/central', rotulo: 'Central' },
     { para: '/painel', rotulo: 'Painel' },
@@ -27,7 +28,7 @@ export const MENU: Record<'gestao' | 'telefonista' | 'setor', Item[]> = {
   ],
 };
 
-const NOME_PAPEL = { gestao: 'Gestão NIR', telefonista: 'Central de Telefonistas', setor: 'Enfermagem' };
+const NOME_PAPEL = { gestao: 'Gestão NIR', telefonista: 'Central de Telefonistas', setor: 'Enfermagem', maqueiro: 'Maqueiro' };
 
 export function Layout() {
   const perfil = usePerfil();

@@ -4,7 +4,7 @@
 //   criar     { usuario, papel, nome, setor_id? }  → cria login e devolve senha aleatória
 //   redefinir { usuario }                   → nova senha aleatória
 //   ativar    { usuario, ativo }            → aprova/desbloqueia ou recusa/bloqueia o login (nunca exclui)
-//   alterar   { usuario, papel, setor_id?, nome? } → ajusta perfil e setor (ex.: ao aprovar um autocadastro)
+//   alterar   { usuario, papel, setor_id?, maqueiro_id?, nome? } → ajusta perfil e setor (ex.: ao aprovar um autocadastro)
 // A service_role só existe aqui (variável de ambiente do Supabase), nunca no front.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
   if (acao === 'listar') {
     const { data, error } = await admin
       .from('perfis')
-      .select('id, usuario, papel, nome, setor_id, ativo, aprovado_em, aprovado_por, created_at')
+      .select('id, usuario, papel, nome, setor_id, maqueiro_id, ativo, aprovado_em, aprovado_por, created_at')
       .order('papel')
       .order('usuario');
     if (error) return resposta({ erro: error.message }, 500);
@@ -81,9 +81,11 @@ Deno.serve(async (req) => {
     const papel = String(body.papel ?? '');
     const nome = String(body.nome ?? '').trim() || usuario;
     const setorId = body.setor_id ? String(body.setor_id) : null;
+    const maqueiroId = body.maqueiro_id ? String(body.maqueiro_id) : null;
     if (!usuario || usuario.length < 3) return resposta({ erro: 'Usuário inválido (mínimo 3 letras/números)' }, 400);
-    if (!['gestao', 'telefonista', 'setor'].includes(papel)) return resposta({ erro: 'Papel inválido' }, 400);
+    if (!['gestao', 'telefonista', 'setor', 'maqueiro'].includes(papel)) return resposta({ erro: 'Papel inválido' }, 400);
     if (papel === 'setor' && !setorId) return resposta({ erro: 'Informe o setor' }, 400);
+    if (papel === 'maqueiro' && !maqueiroId) return resposta({ erro: 'Informe o maqueiro' }, 400);
 
     const senha = senhaAleatoria();
     const { data: criado, error } = await admin.auth.admin.createUser({
@@ -100,6 +102,7 @@ Deno.serve(async (req) => {
       papel,
       nome,
       setor_id: papel === 'setor' ? setorId : null,
+      maqueiro_id: papel === 'maqueiro' ? maqueiroId : null,
       aprovado_em: new Date().toISOString(),
       aprovado_por: perfilChamador.usuario,
     });
@@ -143,15 +146,21 @@ Deno.serve(async (req) => {
     const usuario = normalizarUsuario(String(body.usuario ?? ''));
     const papel = String(body.papel ?? '');
     const setorId = body.setor_id ? String(body.setor_id) : null;
+    const maqueiroId = body.maqueiro_id ? String(body.maqueiro_id) : null;
     const nome = body.nome === undefined ? undefined : String(body.nome).trim();
-    if (!['gestao', 'telefonista', 'setor'].includes(papel)) return resposta({ erro: 'Papel inválido' }, 400);
+    if (!['gestao', 'telefonista', 'setor', 'maqueiro'].includes(papel)) return resposta({ erro: 'Papel inválido' }, 400);
     if (papel === 'setor' && !setorId) return resposta({ erro: 'Informe o setor' }, 400);
+    if (papel === 'maqueiro' && !maqueiroId) return resposta({ erro: 'Informe o maqueiro' }, 400);
     if (usuario === perfilChamador.usuario && papel !== 'gestao') {
       return resposta({ erro: 'Você não pode tirar o próprio perfil de gestão' }, 400);
     }
     const { data: perfil } = await admin.from('perfis').select('id').eq('usuario', usuario).maybeSingle();
     if (!perfil) return resposta({ erro: 'Usuário não encontrado' }, 404);
-    const dados: Record<string, unknown> = { papel, setor_id: papel === 'setor' ? setorId : null };
+    const dados: Record<string, unknown> = {
+      papel,
+      setor_id: papel === 'setor' ? setorId : null,
+      maqueiro_id: papel === 'maqueiro' ? maqueiroId : null,
+    };
     if (nome) dados.nome = nome;
     const { error } = await admin.from('perfis').update(dados).eq('id', perfil.id);
     if (error) return resposta({ erro: error.message }, 400);

@@ -6,15 +6,16 @@ import { Link } from 'react-router-dom';
 import { Botao, Campo, Entrada, Selecao } from '@/components/ui';
 import { normalizar } from '@/lib/regras';
 import { mensagemErro } from '@/lib/erros';
-import { enviarCadastro, listarSetoresPublico, schemaCadastro, type CadastroEntrada, type CadastroSaida } from './cadastro';
+import { enviarCadastro, listarMaqueirosPublico, listarSetoresPublico, schemaCadastro, type CadastroEntrada, type CadastroSaida } from './cadastro';
 
 export function CadastroPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [resultado, setResultado] = useState<{ usuario: string; aprovado: boolean } | null>(null);
   const setores = useQuery({ queryKey: ['setores-publico'], queryFn: listarSetoresPublico, staleTime: 10 * 60 * 1000 });
+  const maqueiros = useQuery({ queryKey: ['maqueiros-publico'], queryFn: listarMaqueirosPublico, staleTime: 10 * 60 * 1000 });
   const { register, handleSubmit, watch, setValue, getValues, formState } = useForm<CadastroEntrada, unknown, CadastroSaida>({
     resolver: zodResolver(schemaCadastro),
-    defaultValues: { nome: '', usuario: '', papel: 'setor', setor_id: '', senha: '', confirmacao: '' },
+    defaultValues: { nome: '', usuario: '', papel: 'setor', setor_id: '', maqueiro_id: '', senha: '', confirmacao: '' },
   });
   const erros = formState.errors;
   const papel = watch('papel');
@@ -81,6 +82,7 @@ export function CadastroPage() {
             <Selecao id="cad_papel" {...register('papel')}>
               <option value="setor">Enfermagem (setor)</option>
               <option value="telefonista">Central de Telefonistas</option>
+              <option value="maqueiro">Maqueiro (app no celular)</option>
               <option value="gestao">Gestão NIR</option>
             </Selecao>
           </Campo>
@@ -96,6 +98,19 @@ export function CadastroPage() {
                 ))}
               </Selecao>
               {setores.error && <span className="text-sm text-red-600">{mensagemErro(setores.error)}</span>}
+            </Campo>
+          )}
+
+          {papel === 'maqueiro' && (
+            <Campo rotulo="Seu nome na escala" erro={erros.maqueiro_id?.message} htmlFor="cad_maqueiro" dica="Se o seu nome não aparecer, peça para a gestão cadastrar você.">
+              <Selecao id="cad_maqueiro" invalido={!!erros.maqueiro_id} {...register('maqueiro_id')} disabled={maqueiros.isLoading}>
+                <option value="">{maqueiros.isLoading ? 'Carregando…' : 'Selecione…'}</option>
+                {(maqueiros.data ?? []).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome}
+                  </option>
+                ))}
+              </Selecao>
             </Campo>
           )}
 

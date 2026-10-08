@@ -227,3 +227,51 @@ export function intervalosPorHora(linhas: LinhaIntervalo[]) {
   for (const l of linhas) qtd[l.hora]++;
   return qtd.map((total, h) => ({ hora: h, rotulo: `${String(h).padStart(2, '0')}h`, total }));
 }
+
+// ----------------------------------------------------------------------------
+// App dos maqueiros: ofertas e jornadas
+// ----------------------------------------------------------------------------
+export type LinhaOferta = { status: string; maqueiro_nome: string; justificativa: string | null; segundos_resposta: number | null; urgente: boolean };
+
+export function resumoOfertas(linhas: LinhaOferta[]) {
+  const validas = linhas.filter((o) => o.status !== 'cancelada' && o.status !== 'pendente');
+  const aceitas = linhas.filter((o) => o.status === 'aceita');
+  const tempos = aceitas.map((o) => Number(o.segundos_resposta)).filter((x) => !Number.isNaN(x));
+  return {
+    enviadas: linhas.length,
+    aceitas: aceitas.length,
+    recusadas: linhas.filter((o) => o.status === 'recusada').length,
+    expiradas: linhas.filter((o) => o.status === 'expirada').length,
+    pctAceite: validas.length ? (aceitas.length / validas.length) * 100 : null,
+    segundosAceiteMedio: media(tempos),
+  };
+}
+
+/** Recusas e não-respostas por maqueiro (mais primeiro). */
+export function ofertasPorMaqueiro(linhas: LinhaOferta[]) {
+  const mapa = new Map<string, { aceitas: number; recusadas: number; expiradas: number }>();
+  for (const o of linhas) {
+    const x = mapa.get(o.maqueiro_nome) ?? { aceitas: 0, recusadas: 0, expiradas: 0 };
+    if (o.status === 'aceita') x.aceitas++;
+    if (o.status === 'recusada') x.recusadas++;
+    if (o.status === 'expirada') x.expiradas++;
+    mapa.set(o.maqueiro_nome, x);
+  }
+  return [...mapa.entries()].map(([chave, x]) => ({ chave, ...x })).sort((a, b) => b.recusadas + b.expiradas - (a.recusadas + a.expiradas));
+}
+
+/** Motivo de recusa: a parte antes de ":" (o app grava "Motivo: detalhe"). */
+export function motivosRecusa(linhas: LinhaOferta[]) {
+  const mapa = new Map<string, number>();
+  for (const o of linhas.filter((l) => l.status === 'recusada')) {
+    const k = (o.justificativa ?? 'Sem motivo').split(':')[0].trim() || 'Sem motivo';
+    mapa.set(k, (mapa.get(k) ?? 0) + 1);
+  }
+  return [...mapa.entries()].map(([chave, total]) => ({ chave, total })).sort((a, b) => b.total - a.total);
+}
+
+export function horasJornadaPorMaqueiro(linhas: { maqueiro_nome: string; horas: number }[]) {
+  const mapa = new Map<string, number>();
+  for (const j of linhas) mapa.set(j.maqueiro_nome, (mapa.get(j.maqueiro_nome) ?? 0) + Number(j.horas));
+  return [...mapa.entries()].map(([chave, total]) => ({ chave, total: Math.round(total * 10) / 10 })).sort((a, b) => b.total - a.total);
+}

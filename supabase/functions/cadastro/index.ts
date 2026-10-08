@@ -1,7 +1,8 @@
 // Edge Function pública: autocadastro de acesso.
 // Ações (POST, sem login):
 //   setores                                         → lista de setores ativos (para o formulário)
-//   cadastrar { nome, usuario, senha, papel, setor_id? } → cria o login
+//   maqueiros                                       → maqueiros ativos ainda sem login (perfil Maqueiro)
+//   cadastrar { nome, usuario, senha, papel, setor_id?, maqueiro_id? } → cria o login
 // Regras:
 //   - o PRIMEIRO cadastro do sistema (nenhum perfil existente) vira gestão já aprovada;
 //   - os demais ficam aguardando aprovação da gestão (perfil inativo, sem acesso a nada).
@@ -48,6 +49,16 @@ Deno.serve(async (req) => {
     return resposta({ setores: data });
   }
 
+  if (body.acao === 'maqueiros') {
+    const [{ data: ms, error }, { data: vinculados }] = await Promise.all([
+      admin.from('maqueiros').select('id, nome').eq('ativo', true).order('nome'),
+      admin.from('perfis').select('maqueiro_id').not('maqueiro_id', 'is', null),
+    ]);
+    if (error) return resposta({ erro: error.message }, 500);
+    const usados = new Set((vinculados ?? []).map((p) => p.maqueiro_id));
+    return resposta({ maqueiros: (ms ?? []).filter((m) => !usados.has(m.id)) });
+  }
+
   if (body.acao !== 'cadastrar') return resposta({ erro: 'Ação desconhecida' }, 400);
 
   const nome = String(body.nome ?? '').trim().slice(0, 60);
@@ -55,16 +66,24 @@ Deno.serve(async (req) => {
   const senha = String(body.senha ?? '');
   let papel = String(body.papel ?? '');
   let setorId = body.setor_id ? String(body.setor_id) : null;
+  let maqueiroId = body.maqueiro_id ? String(body.maqueiro_id) : null;
 
   if (nome.length < 3) return resposta({ erro: 'Informe seu nome.' }, 400);
   if (usuario.length < 3 || usuario.length > 40) return resposta({ erro: 'O usuário precisa ter de 3 a 40 letras ou números.' }, 400);
   if (senha.length < 8) return resposta({ erro: 'A senha precisa ter pelo menos 8 caracteres.' }, 400);
-  if (!['gestao', 'telefonista', 'setor'].includes(papel)) return resposta({ erro: 'Escolha o perfil.' }, 400);
+  if (!['gestao', 'telefonista', 'setor', 'maqueiro'].includes(papel)) return resposta({ erro: 'Escolha o perfil.' }, 400);
   if (papel === 'setor') {
     if (!setorId) return resposta({ erro: 'Escolha o setor.' }, 400);
     const { data: st } = await admin.from('setores').select('id').eq('id', setorId).eq('ativo', true).maybeSingle();
     if (!st) return resposta({ erro: 'Setor inválido.' }, 400);
   } else setorId = null;
+  if (papel === 'maqueiro') {
+    if (!maqueiroId) return resposta({ erro: 'Escolha seu nome na lista.' }, 400);
+    const { data: mq } = await admin.from('maqueiros').select('id').eq('id', maqueiroId).eq('ativo', true).maybeSingle();
+    if (!mq) return resposta({ erro: 'Maqueiro inválido.' }, 400);
+    const { data: jaTem } = await admin.from('perfis').select('id').eq('maqueiro_id', maqueiroId).maybeSingle();
+    if (jaTem) return resposta({ erro: 'Este maqueiro já tem acesso. Procure a gestão.' }, 409);
+  } else maqueiroId = null;
 
   const { data: existente } = await admin.from('perfis').select('id').eq('usuario', usuario).maybeSingle();
   if (existente) return resposta({ erro: 'Este usuário já existe. Escolha outro.' }, 409);
@@ -75,6 +94,7 @@ Deno.serve(async (req) => {
   if (primeiro) {
     papel = 'gestao';
     setorId = null;
+    maqueiroId = null;
   }
 
   const { data: criado, error } = await admin.auth.admin.createUser({
@@ -94,6 +114,7 @@ Deno.serve(async (req) => {
     papel,
     nome,
     setor_id: setorId,
+    maqueiro_id: maqueiroId,
     ativo: primeiro,
     aprovado_em: primeiro ? new Date().toISOString() : null,
     aprovado_por: primeiro ? 'primeiro cadastro do sistema' : null,
