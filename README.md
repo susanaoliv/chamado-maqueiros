@@ -117,6 +117,10 @@ npm run build                   # gera dist/
 | `VITE_SUPABASE_URL` | Project Settings → API → Project URL | pública |
 | `VITE_SUPABASE_ANON_KEY` | Project Settings → API → anon public | pública (a RLS protege os dados) |
 
+- **Vercel (em uso na homologação):** projeto `chamado-maqueiros` ligado ao GitHub; cada
+  atualização no `main` publica sozinha. As variáveis `VITE_SUPABASE_URL` e
+  `VITE_SUPABASE_ANON_KEY` ficam em Settings → Environment Variables (Production e Preview).
+  Ao mudar uma variável, é preciso publicar de novo (Deployments → ⋯ → Redeploy).
 - **Netlify:** publique `dist/` (o arquivo `public/_redirects` já trata as rotas do React).
 - **Vercel:** o `vercel.json` já tem o rewrite e os cabeçalhos de segurança.
 - **Servidor da TI (nginx):** sirva `dist/` com `try_files $uri /index.html;`.
