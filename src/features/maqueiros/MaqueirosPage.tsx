@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import clsx from 'clsx';
 import { AreaTexto, Botao, Campo, Carregando, Entrada, Erro, Modal, Selecao } from '@/components/ui';
-import { usePainelMaqueiros } from '@/hooks/dados';
+import { useAgora, usePainelMaqueiros } from '@/hooks/dados';
 import { MOTIVOS_HABILITACAO, SITUACAO_MAQUEIRO, TIPOS_INDISPONIBILIDADE } from '@/lib/constantes';
-import { fmtHora } from '@/lib/tempo';
+import { fmtDuracao, fmtHora, minutosEntre } from '@/lib/tempo';
 import { useDesabilitar, useDisponibilizar, useHabilitar, useIndisponivel, useIntervalo } from '@/features/chamados/api';
 import type { PainelMaqueiro } from '@/types/database';
 
@@ -16,6 +16,7 @@ export function MaqueirosPage() {
   const disponibilizar = useDisponibilizar();
   const desabilitar = useDesabilitar();
   const intervalo = useIntervalo();
+  const agora = useAgora(30000);
 
   if (isLoading) return <Carregando />;
   if (error) return <Erro erro={error} />;
@@ -75,6 +76,16 @@ export function MaqueirosPage() {
               <div className={clsx('w-48 text-sm font-semibold', s.classe)}>
                 {s.icone} {s.rotulo}
                 {m.chamado_atual_numero && <span className="block text-xs font-normal text-slate-500">{m.chamado_atual_numero}</span>}
+                {m.intervalo_inicio && (
+                  <span className="block text-xs font-normal">
+                    desde {fmtHora(m.intervalo_inicio)} · {fmtDuracao(minutosEntre(m.intervalo_inicio, agora))}
+                  </span>
+                )}
+                {m.intervalos_hoje > 0 && (
+                  <span className="block text-xs font-normal text-slate-500">
+                    Intervalo hoje: {fmtDuracao(Number(m.intervalo_min_hoje))} ({m.intervalos_hoje}x)
+                  </span>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
                 {!m.em_plantao && (
@@ -90,7 +101,7 @@ export function MaqueirosPage() {
                 {m.em_plantao && !m.indisponibilidade_id && (
                   <>
                     <Botao tamanho="sm" variante="secundario" onClick={() => intervalo.mutate({ p_maqueiro_id: m.maqueiro_id, p_em_intervalo: !m.em_intervalo })}>
-                      {m.em_intervalo ? 'Voltou do intervalo' : 'Intervalo'}
+                      {m.em_intervalo ? 'Encerrar intervalo' : 'Iniciar intervalo'}
                     </Botao>
                     <Botao tamanho="sm" variante="aviso" onClick={() => setIndisp(m)}>
                       Indisponível

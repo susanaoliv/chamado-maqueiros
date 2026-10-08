@@ -91,6 +91,10 @@ export type Database = {
         criado_por: string | null; encerrado_por: string | null; created_at: string;
       }>;
       chamados: Tabela<ChamadoRow>;
+      intervalos: Tabela<{
+        id: string; maqueiro_id: string; inicio: string; fim: string | null; criado_por: string | null;
+        encerrado_por: string | null; created_at: string;
+      }>;
       chamado_eventos: Tabela<EventoRow>;
       configuracoes: Tabela<{ chave: string; valor: Json }, { chave: string; valor: Json }>;
       sequencia_chamados: Tabela<{ ano: number; n: number }>;
@@ -105,6 +109,14 @@ export type Database = {
         Relationships: [];
       };
       vw_historico: { Row: EventoRow & { chamado_numero: string | null }; Relationships: [] };
+      vw_intervalos: {
+        Row: {
+          id: string; maqueiro_id: string; maqueiro_nome: string; inicio: string; fim: string | null;
+          criado_por: string | null; encerrado_por: string | null; data_local: string; hora: number;
+          em_andamento: boolean; minutos: number;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       agora_servidor: { Args: Record<string, never>; Returns: string };
@@ -142,6 +154,7 @@ export type Database = {
           indisponibilidade_id: string | null; indisponibilidade_tipo: string | null; indisponibilidade_justificativa: string | null;
           situacao: string; chamados_ativos: number; chamado_atual_numero: string | null; chamado_atual_status: string | null;
           disponivel_para_acionar: boolean; escala_mes_cadastrada: boolean;
+          intervalo_inicio: string | null; intervalos_hoje: number; intervalo_min_hoje: number;
         }[];
       };
       habilitar_maqueiro: {
@@ -180,5 +193,6 @@ export type Indisponibilidade = T['indisponibilidades']['Row'];
 export type Chamado = ChamadoRow;
 export type ChamadoMetrica = Database['public']['Views']['vw_chamados_metricas']['Row'];
 export type Evento = Database['public']['Views']['vw_historico']['Row'];
+export type IntervaloRegistro = Database['public']['Views']['vw_intervalos']['Row'];
 export type PainelMaqueiro = Database['public']['Functions']['painel_maqueiros']['Returns'][number];
 export type CapacidadeHora = Database['public']['Functions']['capacidade_dia']['Returns'][number];

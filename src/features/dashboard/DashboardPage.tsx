@@ -1,9 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Abas, Cartao, Carregando, Erro, Kpi, Selecao } from '@/components/ui';
 import { Colunas, Ranking, Rosca, comOutros, useCores } from '@/components/graficos';
-import { useChamadosPeriodo, useConfig, useMaqueiros, useSetores } from '@/hooks/dados';
-import { intervaloPeriodo, fmtMin, DIAS_SEMANA } from '@/lib/tempo';
-import { agrupar, corPrazo, gruposAtraso, mapaCalor, media, motivosAtraso, necessidades, pct, porHora, resumo, topN, type LinhaMetrica } from '@/lib/metricas';
+import { useChamadosPeriodo, useConfig, useIntervalosPeriodo, useMaqueiros, useSetores } from '@/hooks/dados';
+import { intervaloPeriodo, fmtMin, fmtDuracao, fmtDataHora, DIAS_SEMANA } from '@/lib/tempo';
+import {
+  agrupar, corPrazo, gruposAtraso, intervalosPorHora, intervalosPorMaqueiro, mapaCalor, media, motivosAtraso, necessidades, pct, porHora, resumo,
+  resumoIntervalos, topN, type LinhaMetrica,
+} from '@/lib/metricas';
+import { Tabela } from '@/components/ui';
 import { TIPOS_CHAMADO } from '@/lib/constantes';
 
 type Periodo = 'hoje' | '7dias' | 'mes' | 'tudo';
@@ -53,7 +57,7 @@ export function MaisFiltros({ f, setF }: { f: Filtros; setF: (f: Filtros) => voi
 
 export function DashboardPage() {
   const [periodo, setPeriodo] = useState<Periodo>('7dias');
-  const [aba, setAba] = useState<'geral' | 'demanda' | 'equipe' | 'atrasos'>('geral');
+  const [aba, setAba] = useState<'geral' | 'demanda' | 'equipe' | 'atrasos' | 'intervalos'>('geral');
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_VAZIOS);
   const { de, ate } = useMemo(() => intervaloPeriodo(periodo), [periodo]);
   const { data, isLoading, error } = useChamadosPeriodo(de, ate);
@@ -102,6 +106,7 @@ export function DashboardPage() {
               { id: 'demanda', rotulo: 'Demanda' },
               { id: 'equipe', rotulo: 'Equipe' },
               { id: 'atrasos', rotulo: 'Atrasos' },
+              { id: 'intervalos', rotulo: 'Intervalos' },
             ]}
             ativa={aba}
             onChange={setAba}
@@ -157,6 +162,8 @@ export function DashboardPage() {
           )}
 
           {aba === 'equipe' && <Equipe linhas={linhas} sla={sla} />}
+
+          {aba === 'intervalos' && <Intervalos de={de} ate={ate} maqueiro={filtros.maqueiro} />}
 
           {aba === 'atrasos' && (
             <div className="grid gap-4 lg:grid-cols-2">
@@ -256,6 +263,87 @@ export function MapaCalor({ linhas }: { linhas: LinhaMetrica[] }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+export function Intervalos({ de, ate, maqueiro }: { de: string; ate: string; maqueiro?: string }) {
+  const { data, isLoading, error } = useIntervalosPeriodo(de, ate);
+  if (isLoading) return <Carregando />;
+  if (error) return <Erro erro={error} />;
+  const linhas = (data ?? []).filter((l) => !maqueiro || l.maqueiro_nome === maqueiro);
+  const r = resumoIntervalos(linhas);
+  const porMaq = intervalosPorMaqueiro(linhas);
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Kpi titulo="Intervalos" valor={r.total} detalhe={r.emAndamento ? `${r.emAndamento} em andamento` : undefined} cor="blue" />
+        <Kpi titulo="Tempo total" valor={fmtDuracao(r.minutosTotais)} cor="purple" />
+        <Kpi titulo="Duração média" valor={fmtMin(r.media)} detalhe={`mediana ${fmtMin(r.mediana)}`} cor="teal" />
+        <Kpi titulo="Maior intervalo" valor={fmtMin(r.maior)} cor="orange" />
+      </div>
+      {linhas.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500 dark:border-slate-700">
+          Nenhum intervalo registrado no período.
+        </p>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Cartao titulo="Minutos de intervalo por maqueiro">
+            <Ranking dados={topN(porMaq, 10).map((g) => ({ chave: g.chave, total: Math.round(g.minutos) }))} sufixo=" min" />
+          </Cartao>
+          <Cartao titulo="Início dos intervalos por hora">
+            <Colunas dados={intervalosPorHora(linhas)} x="rotulo" y="total" nomeSerie="Intervalos" />
+          </Cartao>
+          <Cartao titulo="Por maqueiro" className="lg:col-span-2">
+            <Tabela>
+              <thead>
+                <tr>
+                  <th>Maqueiro</th>
+                  <th>Intervalos</th>
+                  <th>Total</th>
+                  <th>Média</th>
+                  <th>Maior</th>
+                </tr>
+              </thead>
+              <tbody>
+                {porMaq.map((g) => (
+                  <tr key={g.chave}>
+                    <td className="font-semibold">{g.chave}</td>
+                    <td>{g.qtd}</td>
+                    <td>{fmtDuracao(g.minutos)}</td>
+                    <td>{fmtMin(g.media)}</td>
+                    <td>{fmtMin(g.maior)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Tabela>
+          </Cartao>
+          <Cartao titulo="Últimos intervalos" className="lg:col-span-2">
+            <Tabela>
+              <thead>
+                <tr>
+                  <th>Maqueiro</th>
+                  <th>Início</th>
+                  <th>Fim</th>
+                  <th>Duração</th>
+                  <th>Registrado por</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...linhas].reverse().slice(0, 30).map((l) => (
+                  <tr key={l.id}>
+                    <td>{l.maqueiro_nome}</td>
+                    <td>{fmtDataHora(l.inicio)}</td>
+                    <td>{l.fim ? fmtDataHora(l.fim) : <strong className="text-orange-600">em andamento</strong>}</td>
+                    <td>{fmtMin(Number(l.minutos))}</td>
+                    <td className="text-xs">{l.criado_por}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Tabela>
+          </Cartao>
+        </div>
+      )}
     </div>
   );
 }

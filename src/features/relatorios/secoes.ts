@@ -2,7 +2,7 @@
 // (Excel, CSV e PDF), garantindo que os arquivos conferem com o que se vê.
 import type { Secao } from '@/lib/exportar';
 import { n1 } from '@/lib/exportar';
-import { agrupar, gruposAtraso, mapaCalor, motivosAtraso, pct, piorFaixa, porHora, resumo, type Grupo, type LinhaMetrica } from '@/lib/metricas';
+import { agrupar, gruposAtraso, intervalosPorMaqueiro, mapaCalor, motivosAtraso, pct, piorFaixa, porHora, resumo, type Grupo, type LinhaIntervalo, type LinhaMetrica } from '@/lib/metricas';
 import { DIAS_SEMANA, fmtDataHora, fmtMin } from '@/lib/tempo';
 import type { CapacidadeHora, ChamadoMetrica } from '@/types/database';
 
@@ -176,5 +176,19 @@ export function secaoListaChamados(linhas: ChamadoMetrica[]): Secao<ChamadoMetri
       { titulo: 'Encerrado por', valor: (c) => c.encerrado_por ?? '' },
     ],
     linhas,
+  };
+}
+
+export function secaoIntervalos(linhas: LinhaIntervalo[]): Secao<ReturnType<typeof intervalosPorMaqueiro>[number]> {
+  return {
+    titulo: 'Intervalos por maqueiro',
+    colunas: [
+      { titulo: 'Maqueiro', valor: (g) => g.chave },
+      { titulo: 'Intervalos', valor: (g) => g.qtd },
+      { titulo: 'Total (min)', valor: (g) => Math.round(g.minutos) },
+      { titulo: 'Média (min)', valor: (g) => n1(g.media) },
+      { titulo: 'Maior (min)', valor: (g) => n1(g.maior) },
+    ],
+    linhas: intervalosPorMaqueiro(linhas),
   };
 }

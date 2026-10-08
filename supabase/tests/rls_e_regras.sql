@@ -182,7 +182,36 @@ begin
   -- intervalo
   perform public.definir_intervalo('00000000-0000-0000-0000-0000000000b2', true);
   if public.maqueiro_disponivel('00000000-0000-0000-0000-0000000000b2') then raise exception 'FALHA: intervalo'; end if;
+  if (select count(*) from public.intervalos where maqueiro_id = '00000000-0000-0000-0000-0000000000b2' and fim is null) <> 1 then
+    raise exception 'FALHA: intervalo não registrado';
+  end if;
+  if (select intervalo_inicio from public.painel_maqueiros() where maqueiro_id = '00000000-0000-0000-0000-0000000000b2') is null then
+    raise exception 'FALHA: painel sem início do intervalo';
+  end if;
+  begin
+    perform public.definir_intervalo('00000000-0000-0000-0000-0000000000b2', true);
+    raise exception 'FALHA: dois intervalos abertos';
+  exception when raise_exception then
+    if sqlerrm like 'FALHA%' then raise; end if;
+  end;
   perform public.definir_intervalo('00000000-0000-0000-0000-0000000000b2', false);
+  if exists (select 1 from public.intervalos where maqueiro_id = '00000000-0000-0000-0000-0000000000b2' and fim is null) then
+    raise exception 'FALHA: intervalo não encerrado';
+  end if;
+  if (select count(*) from public.vw_intervalos where maqueiro_id = '00000000-0000-0000-0000-0000000000b2' and not em_andamento) <> 1 then
+    raise exception 'FALHA: view de intervalos';
+  end if;
+  begin
+    perform public.definir_intervalo((select id from public.maqueiros where nome = 'VANEIR FELIPE'), true);
+    raise exception 'FALHA: intervalo para maqueiro fora da escala';
+  exception when raise_exception then
+    if sqlerrm like 'FALHA%' then raise; end if;
+  end;
+  begin
+    insert into public.intervalos (maqueiro_id) values ('00000000-0000-0000-0000-0000000000b2');
+    raise exception 'FALHA: INSERT direto em intervalos';
+  exception when insufficient_privilege then null;
+  end;
 
   -- painel lista todos os ativos
   if (select count(*) from public.painel_maqueiros() where maqueiro_id in ('00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000b2')) <> 2 then
@@ -288,6 +317,9 @@ begin
   end if;
   if exists (select 1 from public.chamado_eventos e where e.chamado_id is null or e.chamado_id <> c.id) then
     raise exception 'FALHA: setor enxerga histórico alheio';
+  end if;
+  if exists (select 1 from public.intervalos) then
+    raise exception 'FALHA: setor enxerga intervalos';
   end if;
   -- não escreve cadastros
   begin

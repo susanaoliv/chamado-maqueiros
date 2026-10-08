@@ -151,9 +151,13 @@ planilha de cada mês.
 
 | Papel | Telas | Pode |
 |---|---|---|
-| `telefonista` | Central, Painel, Maqueiros | abrir, informar maqueiro, mudar status, encerrar, cancelar; habilitar, marcar indisponível, intervalo |
-| `setor` | Meus chamados | abrir chamados do próprio setor, acompanhar em tempo real, cancelar os do próprio setor |
-| `gestao` | todas | tudo acima + dashboard, capacidade, relatórios e exportação, escala, histórico, correções, configurações e acessos |
+| `setor` (Enfermagem) | Meus chamados | abrir chamados do próprio setor, acompanhar em tempo real, cancelar os do próprio setor |
+| `telefonista` (Central) | Central, Painel, Maqueiros, Registros | abrir, distribuir maqueiros, mudar status, encerrar, cancelar; habilitar/desabilitar, indisponível, iniciar/encerrar intervalo; consultar registros com horários e linha do tempo, exportar |
+| `gestao` (Gestão NIR) | todas | tudo acima + dashboard (inclui aba Intervalos), capacidade, relatórios e exportação, escala, histórico, correções, configurações e acessos |
+
+**Intervalos:** cada "Iniciar/Encerrar intervalo" vira um registro (tabela `intervalos`, view `vw_intervalos`)
+com início, fim e quem registrou. Só é possível iniciar intervalo de quem está de plantão ou habilitado.
+Os dados aparecem em Maqueiros (tempo correndo e total do dia), Dashboard → Intervalos e nos Relatórios.
 
 O campo **Seu nome** do login vai num cabeçalho (`x-ator-nome`) de todas as requisições e o
 banco grava em `criado_por`, `encerrado_por`, `cancelado_por` e no histórico, no formato

@@ -35,11 +35,11 @@ export function CadastroPage() {
       <main className="flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-4 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="text-4xl">{resultado.aprovado ? '✅' : '⏳'}</div>
-          <h1 className="text-xl font-bold">{resultado.aprovado ? 'Acesso de gestão criado' : 'Cadastro enviado'}</h1>
+          <h1 className="text-xl font-bold">{resultado.aprovado ? 'Acesso da Gestão NIR criado' : 'Cadastro enviado'}</h1>
           <p className="text-sm text-slate-600 dark:text-slate-300">
             Seu usuário é <strong className="font-mono">{resultado.usuario}</strong>.{' '}
             {resultado.aprovado
-              ? 'Por ser o primeiro cadastro do sistema, ele já tem perfil de gestão. Entre agora e aprove os próximos cadastros em Configurações → Acessos.'
+              ? 'Por ser o primeiro cadastro do sistema, ele já tem o perfil Gestão NIR. Entre agora e aprove os próximos cadastros em Configurações → Acessos.'
               : 'Ele fica aguardando a aprovação da gestão. Assim que for aprovado, você já consegue entrar.'}
           </p>
           <Link to="/login" className="inline-block rounded-lg bg-marca-600 px-5 py-3 font-semibold text-white hover:bg-marca-700">
@@ -79,9 +79,9 @@ export function CadastroPage() {
 
           <Campo rotulo="Perfil" erro={erros.papel?.message} htmlFor="cad_papel">
             <Selecao id="cad_papel" {...register('papel')}>
-              <option value="setor">Setor de enfermagem</option>
+              <option value="setor">Enfermagem (setor)</option>
               <option value="telefonista">Central de Telefonistas</option>
-              <option value="gestao">Gestão</option>
+              <option value="gestao">Gestão NIR</option>
             </Selecao>
           </Campo>
 
