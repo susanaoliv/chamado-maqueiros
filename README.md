@@ -112,6 +112,13 @@ npm run build                   # gera dist/
 - **Servidor da TI (nginx):** sirva `dist/` com `try_files $uri /index.html;`.
 - **HTTPS é obrigatório.**
 
+### 2.5.1 Rodar no próprio computador (Windows)
+
+1. Instale o Node.js LTS (<https://nodejs.org>).
+2. Crie o arquivo `.env.local` na pasta do projeto (modelo em `.env.example`).
+3. Dê **duplo clique em `iniciar.cmd`**: ele instala/atualiza as bibliotecas, liga o sistema e
+   abre o navegador em <http://localhost:5173>. Para desligar, feche a janela.
+
 ### 2.6 Escala
 
 Na primeira entrada da gestão: **Escala → Importar planilha** com a escala oficial do mês
