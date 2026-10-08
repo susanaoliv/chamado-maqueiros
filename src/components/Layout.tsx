@@ -10,11 +10,14 @@ export const MENU: Record<'gestao' | 'telefonista' | 'setor', Item[]> = {
     { para: '/central', rotulo: 'Central' },
     { para: '/painel', rotulo: 'Painel' },
     { para: '/maqueiros', rotulo: 'Maqueiros' },
+    { para: '/registros', rotulo: 'Registros' },
   ],
   setor: [{ para: '/meus-chamados', rotulo: 'Meus chamados' }],
   gestao: [
     { para: '/central', rotulo: 'Central' },
+    { para: '/painel', rotulo: 'Painel' },
     { para: '/maqueiros', rotulo: 'Maqueiros' },
+    { para: '/registros', rotulo: 'Registros' },
     { para: '/dashboard', rotulo: 'Dashboard' },
     { para: '/capacidade', rotulo: 'Capacidade' },
     { para: '/relatorios', rotulo: 'Relatórios' },
@@ -24,7 +27,7 @@ export const MENU: Record<'gestao' | 'telefonista' | 'setor', Item[]> = {
   ],
 };
 
-const NOME_PAPEL = { gestao: 'Gestão', telefonista: 'Central de Telefonistas', setor: 'Setor' };
+const NOME_PAPEL = { gestao: 'Gestão NIR', telefonista: 'Central de Telefonistas', setor: 'Enfermagem' };
 
 export function Layout() {
   const perfil = usePerfil();
@@ -43,7 +46,7 @@ export function Layout() {
               </div>
             </div>
           </div>
-          <nav aria-label="Principal" className="order-3 -mx-1 flex w-full gap-1 overflow-x-auto md:order-none md:w-auto md:flex-1">
+          <nav aria-label="Principal" className="order-3 -mx-1 flex w-full gap-1 overflow-x-auto md:order-none md:w-auto md:flex-1 lg:flex-wrap lg:overflow-visible">
             {MENU[perfil.papel].map((i) => (
               <NavLink
                 key={i.para}

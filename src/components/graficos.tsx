@@ -78,7 +78,7 @@ export function Ranking({ dados, altura, sufixo = '' }: { dados: Item[]; altura?
     <ResponsiveContainer width="100%" height={h}>
       <BarChart data={dados} layout="vertical" margin={{ top: 0, right: 36, left: 0, bottom: 0 }}>
         <XAxis type="number" hide allowDecimals={false} />
-        <YAxis type="category" dataKey="chave" width={150} tick={{ fill: c.texto, fontSize: 12 }} tickLine={false} axisLine={false} />
+        <YAxis type="category" dataKey="chave" width={200} tick={{ fill: c.texto, fontSize: 11 }} tickLine={false} axisLine={false} />
         <Tooltip {...estiloTooltip(c)} formatter={(v: number) => `${Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}${sufixo}`} />
         <Bar dataKey="total" name="Total" fill={c.principal} radius={[0, 4, 4, 0]} maxBarSize={20} label={{ position: 'right', fill: c.texto, fontSize: 11, formatter: (v: number) => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }} />
       </BarChart>

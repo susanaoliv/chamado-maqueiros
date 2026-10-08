@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, buscarTudo } from '@/lib/supabase';
 import { agora, localParaIso, hojeLocal } from '@/lib/tempo';
 import { ABERTOS } from '@/lib/regras';
-import type { ChamadoMetrica, Json } from '@/types/database';
+import type { ChamadoMetrica, IntervaloRegistro, Json } from '@/types/database';
 
 export function useSetores() {
   return useQuery({
@@ -126,6 +126,7 @@ export function useRealtimeSync(ativo: boolean) {
         invalidar('painel', 'indisponibilidades', 'capacidade'),
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'maqueiros' }, () => invalidar('painel', 'maqueiros'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'intervalos' }, () => invalidar('painel', 'intervalos'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'escala_dias' }, () => invalidar('painel', 'escala', 'capacidade'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracoes' }, () => invalidar('config', 'capacidade'))
       .subscribe((status) => {
@@ -149,4 +150,16 @@ export function useAgora(ms = 15000) {
     return () => clearInterval(id);
   }, [ms]);
   return t;
+}
+
+/** Intervalos dos maqueiros iniciados no período (Dashboard e Relatórios). */
+export function useIntervalosPeriodo(de: string, ate: string, habilitado = true) {
+  return useQuery({
+    queryKey: ['intervalos', de, ate],
+    enabled: habilitado,
+    queryFn: () =>
+      buscarTudo<IntervaloRegistro>((i, f) =>
+        supabase.from('vw_intervalos').select('*').gte('inicio', de).lt('inicio', ate).order('inicio').range(i, f),
+      ),
+  });
 }

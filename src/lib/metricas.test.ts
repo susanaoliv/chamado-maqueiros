@@ -87,3 +87,19 @@ describe('exportação CSV', () => {
     expect(csv).toContain('"x;""y"""');
   });
 });
+
+describe('intervalos', () => {
+  const l = (maqueiro_nome: string, minutos: number, hora: number, data_local = '2026-10-08', em_andamento = false) => ({ maqueiro_nome, minutos, hora, data_local, em_andamento });
+  const linhas = [l('A', 15, 10), l('A', 30, 13), l('B', 20, 13, '2026-10-09', true)];
+  it('resume total, média e maior', async () => {
+    const { resumoIntervalos } = await import('./metricas');
+    const r = resumoIntervalos(linhas);
+    expect(r).toMatchObject({ total: 3, emAndamento: 1, minutosTotais: 65, maior: 30, dias: 2 });
+    expect(r.media).toBeCloseTo(65 / 3);
+  });
+  it('agrupa por maqueiro (mais minutos primeiro) e por hora', async () => {
+    const { intervalosPorMaqueiro, intervalosPorHora } = await import('./metricas');
+    expect(intervalosPorMaqueiro(linhas)[0]).toMatchObject({ chave: 'A', qtd: 2, minutos: 45, media: 22.5, maior: 30 });
+    expect(intervalosPorHora(linhas)[13].total).toBe(2);
+  });
+});

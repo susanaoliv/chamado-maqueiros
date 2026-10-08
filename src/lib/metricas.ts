@@ -194,3 +194,36 @@ export const pct = (v: number | null | undefined, casas = 0) =>
 
 export const corPrazo = (p: number | null) =>
   p === null ? 'slate' : p >= 90 ? 'green' : p >= 75 ? 'orange' : 'red';
+
+// ----------------------------------------------------------------------------
+// Intervalos dos maqueiros
+// ----------------------------------------------------------------------------
+export type LinhaIntervalo = { maqueiro_nome: string; minutos: number; hora: number; data_local: string; em_andamento: boolean };
+
+export function resumoIntervalos(linhas: LinhaIntervalo[]) {
+  const min = linhas.map((l) => Number(l.minutos));
+  const dias = new Set(linhas.map((l) => l.data_local)).size;
+  return {
+    total: linhas.length,
+    emAndamento: linhas.filter((l) => l.em_andamento).length,
+    minutosTotais: min.reduce((a, b) => a + b, 0),
+    media: media(min),
+    mediana: mediana(min),
+    maior: min.length ? Math.max(...min) : null,
+    dias,
+  };
+}
+
+export function intervalosPorMaqueiro(linhas: LinhaIntervalo[]) {
+  const mapa = new Map<string, number[]>();
+  for (const l of linhas) mapa.set(l.maqueiro_nome, [...(mapa.get(l.maqueiro_nome) ?? []), Number(l.minutos)]);
+  return [...mapa.entries()]
+    .map(([chave, v]) => ({ chave, qtd: v.length, minutos: v.reduce((a, b) => a + b, 0), media: media(v) ?? 0, maior: Math.max(...v) }))
+    .sort((a, b) => b.minutos - a.minutos);
+}
+
+export function intervalosPorHora(linhas: LinhaIntervalo[]) {
+  const qtd = Array(24).fill(0);
+  for (const l of linhas) qtd[l.hora]++;
+  return qtd.map((total, h) => ({ hora: h, rotulo: `${String(h).padStart(2, '0')}h`, total }));
+}

@@ -203,7 +203,7 @@ function Acessos() {
   const [editando, setEditando] = useState<(Perfil & { aprovar?: boolean }) | null>(null);
   const pendentes = (lista.data ?? []).filter((p) => !p.ativo && !p.aprovado_em);
   const demais = (lista.data ?? []).filter((p) => p.ativo || p.aprovado_em);
-  const NOME_PAPEL: Record<string, string> = { gestao: 'Gestão', telefonista: 'Telefonista', setor: 'Setor' };
+  const NOME_PAPEL: Record<string, string> = { gestao: 'Gestão NIR', telefonista: 'Telefonista', setor: 'Enfermagem' };
 
   return (
     <div className="space-y-4">
@@ -249,7 +249,7 @@ function Acessos() {
             <Selecao id="ac_papel" value={novo.papel} onChange={(e) => setNovo({ ...novo, papel: e.target.value })}>
               <option value="setor">Setor (enfermagem)</option>
               <option value="telefonista">Telefonista</option>
-              <option value="gestao">Gestão</option>
+              <option value="gestao">Gestão NIR</option>
             </Selecao>
           </Campo>
           {novo.papel === 'setor' && (
@@ -394,7 +394,7 @@ function PerfilForm({
         <Selecao id="pf_papel" value={papel} onChange={(e) => setPapel(e.target.value)}>
           <option value="setor">Setor (enfermagem)</option>
           <option value="telefonista">Telefonista</option>
-          <option value="gestao">Gestão</option>
+          <option value="gestao">Gestão NIR</option>
         </Selecao>
       </Campo>
       {papel === 'setor' && (

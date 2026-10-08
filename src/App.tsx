@@ -15,6 +15,7 @@ const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage').th
 const CapacidadePage = lazy(() => import('@/features/capacidade/CapacidadePage').then((m) => ({ default: m.CapacidadePage })));
 const RelatoriosPage = lazy(() => import('@/features/relatorios/RelatoriosPage').then((m) => ({ default: m.RelatoriosPage })));
 const EscalaPage = lazy(() => import('@/features/escala/EscalaPage').then((m) => ({ default: m.EscalaPage })));
+const RegistrosPage = lazy(() => import('@/features/registros/RegistrosPage').then((m) => ({ default: m.RegistrosPage })));
 const HistoricoPage = lazy(() => import('@/features/historico/HistoricoPage').then((m) => ({ default: m.HistoricoPage })));
 const ConfiguracoesPage = lazy(() => import('@/features/config/ConfiguracoesPage').then((m) => ({ default: m.ConfiguracoesPage })));
 
@@ -49,6 +50,7 @@ export function App() {
               <Route path="central" element={<Protegida papeis={GT}><CentralPage /></Protegida>} />
               <Route path="painel" element={<Protegida papeis={GT}><PainelCentralPage /></Protegida>} />
               <Route path="maqueiros" element={<Protegida papeis={GT}><MaqueirosPage /></Protegida>} />
+              <Route path="registros" element={<Protegida papeis={GT}><RegistrosPage /></Protegida>} />
               <Route path="meus-chamados" element={<Protegida papeis={['setor']}><MeusChamadosPage /></Protegida>} />
               <Route path="dashboard" element={<Protegida papeis={G}><DashboardPage /></Protegida>} />
               <Route path="capacidade" element={<Protegida papeis={G}><CapacidadePage /></Protegida>} />

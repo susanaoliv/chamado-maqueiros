@@ -3,7 +3,7 @@ import { useQueries } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Abas, Botao, Cartao, Campo, Carregando, Entrada, Erro, Kpi, Tabela } from '@/components/ui';
 import { Colunas, Ranking } from '@/components/graficos';
-import { useChamadosPeriodo, useConfig } from '@/hooks/dados';
+import { useChamadosPeriodo, useConfig, useIntervalosPeriodo } from '@/hooks/dados';
 import { supabase } from '@/lib/supabase';
 import { exportarCsv, exportarPdf, exportarXlsx, type Secao } from '@/lib/exportar';
 import { hojeLocal, localParaIso, fmtMin } from '@/lib/tempo';
@@ -15,6 +15,7 @@ import {
   secaoAtrasosDetalhe,
   secaoCancelados,
   secaoCapacidade,
+  secaoIntervalos,
   secaoListaChamados,
   secaoMapaCalor,
   secoesSla,
@@ -56,6 +57,7 @@ export function RelatoriosPage() {
   }, [modo, dia, mes, de, ate]);
 
   const { data: linhas, isLoading, error } = useChamadosPeriodo(localParaIso(ini), localParaIso(addDia(fim, 1)));
+  const { data: intervalos } = useIntervalosPeriodo(localParaIso(ini), localParaIso(addDia(fim, 1)));
   const { data: config } = useConfig();
   const sla = config?.sla ?? 20;
   const meta = config?.metaAcionamento ?? 5;
@@ -90,8 +92,10 @@ export function RelatoriosPage() {
     } else {
       secoes = [sla_.resumoSla, sla_.inef, t.porDia, t.porTurno, t.porHora, t.porMaqueiro, sla_.motivos, secaoListaChamados(linhas)];
     }
+    // intervalos entram antes da última seção (lista de chamados ou cancelados)
+    if (intervalos?.length) secoes.splice(secoes.length - 1, 0, secaoIntervalos(intervalos));
     return { ...sla_, t, secoes };
-  }, [linhas, sla, meta, horasDeficit, modo, capDia]);
+  }, [linhas, sla, meta, horasDeficit, modo, capDia, intervalos]);
 
   const titulo = modo === 'diario' ? `Relatório diário · ${fmtD(ini)}` : modo === 'mensal' ? `Relatório mensal · ${mes.split('-').reverse().join('/')}` : `Relatório · ${fmtD(ini)} a ${fmtD(fim)}`;
   const nomeArquivo = `maqueiros_${modo}_${ini}${ini !== fim ? `_a_${fim}` : ''}`;
