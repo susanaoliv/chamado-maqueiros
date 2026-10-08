@@ -73,7 +73,10 @@ export type Database = {
   public: {
     Tables: {
       setores: Tabela<{ id: string; nome: string; ativo: boolean; exige_leito: boolean; ordem: number; created_at: string }>;
-      perfis: Tabela<{ id: string; usuario: string; papel: string; setor_id: string | null; nome: string; ativo: boolean; created_at: string }>;
+      perfis: Tabela<{
+        id: string; usuario: string; papel: string; setor_id: string | null; nome: string; ativo: boolean;
+        aprovado_em: string | null; aprovado_por: string | null; created_at: string;
+      }>;
       maqueiros: Tabela<{
         id: string; nome: string; matricula: string | null; turno: string; horario_inicio: string; horario_fim: string;
         setor_atuacao: string; ativo: boolean; em_intervalo: boolean; created_at: string;

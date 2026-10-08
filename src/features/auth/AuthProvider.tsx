@@ -16,6 +16,8 @@ type Ctx = {
   setorNome: string | null;
   atorNome: string;
   semPerfil: boolean;
+  /** cadastro feito pela própria pessoa, ainda não aprovado pela gestão */
+  pendente: boolean;
   entrar: (usuario: string, senha: string, nome: string) => Promise<void>;
   sair: () => Promise<void>;
 };
@@ -35,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [setorNome, setSetorNome] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [semPerfil, setSemPerfil] = useState(false);
+  const [pendente, setPendente] = useState(false);
   const [atorNome, setAtorNome] = useState(obterAtorNome());
 
   const carregarPerfil = useCallback(async (s: Session | null) => {
@@ -42,15 +45,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPerfil(null);
       setSetorNome(null);
       setSemPerfil(false);
+      setPendente(false);
       return;
     }
     const { data } = await supabase.from('perfis').select('*').eq('id', s.user.id).maybeSingle();
     if (!data || !data.ativo) {
       setPerfil(null);
       setSemPerfil(true);
+      setPendente(!!data && !data.aprovado_em);
       return;
     }
     setSemPerfil(false);
+    setPendente(false);
     setPerfil(data as Ctx['perfil']);
     if (data.setor_id) {
       const { data: st } = await supabase.from('setores').select('nome').eq('id', data.setor_id).maybeSingle();
@@ -108,8 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [qc]);
 
   const valor = useMemo<Ctx>(
-    () => ({ carregando, sessao, perfil, setorNome, atorNome, semPerfil, entrar, sair }),
-    [carregando, sessao, perfil, setorNome, atorNome, semPerfil, entrar, sair],
+    () => ({ carregando, sessao, perfil, setorNome, atorNome, semPerfil, pendente, entrar, sair }),
+    [carregando, sessao, perfil, setorNome, atorNome, semPerfil, pendente, entrar, sair],
   );
   return <AuthCtx.Provider value={valor}>{children}</AuthCtx.Provider>;
 }

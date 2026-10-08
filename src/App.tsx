@@ -4,6 +4,7 @@ import { Carregando } from '@/components/ui';
 import { Layout } from '@/components/Layout';
 import { useAuth, type Papel } from '@/features/auth/AuthProvider';
 import { LoginPage } from '@/features/auth/LoginPage';
+import { CadastroPage } from '@/features/auth/CadastroPage';
 import { CentralPage } from '@/features/central/CentralPage';
 import { PainelCentralPage } from '@/features/central/PainelCentralPage';
 import { MaqueirosPage } from '@/features/maqueiros/MaqueirosPage';
@@ -41,6 +42,7 @@ export function App() {
       <Suspense fallback={<Carregando />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/cadastro" element={perfil ? <Navigate to="/" replace /> : <CadastroPage />} />
           {perfil ? (
             <Route element={<Layout />}>
               <Route index element={<Inicio />} />
