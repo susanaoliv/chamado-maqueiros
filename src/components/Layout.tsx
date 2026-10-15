@@ -5,63 +5,14 @@ import { useAuth, usePerfil } from '@/features/auth/AuthProvider';
 import { useRealtimeSync } from '@/hooks/dados';
 import { Icone, type NomeIcone } from '@/components/Icone';
 import { BotaoInstalar } from '@/components/InstalarApp';
+import { atalhosCelular, telasPermitidas } from '@/lib/telas';
 
 type Item = {
   para: string;
   rotulo: string;
   icone: NomeIcone;
+  /** aparece na barra de baixo do celular (no máximo 4); o resto fica em "Menu" */
   principal?: boolean;
-};
-
-// "principal" = aparece na barra de baixo do celular (no máximo 4). O resto fica em "Menu".
-export const MENU: Record<'gestao' | 'telefonista' | 'setor' | 'maqueiro', Item[]> = {
-  maqueiro: [],
-  telefonista: [
-    { para: '/central', rotulo: 'Central', icone: 'central', principal: true },
-    { para: '/painel', rotulo: 'Painel', icone: 'painel', principal: true },
-    {
-      para: '/maqueiros',
-      rotulo: 'Maqueiros',
-      icone: 'maqueiros',
-      principal: true,
-    },
-    {
-      para: '/registros',
-      rotulo: 'Registros',
-      icone: 'registros',
-      principal: true,
-    },
-  ],
-  setor: [
-    {
-      para: '/meus-chamados',
-      rotulo: 'Meus chamados',
-      icone: 'chamados',
-      principal: true,
-    },
-  ],
-  gestao: [
-    { para: '/central', rotulo: 'Central', icone: 'central', principal: true },
-    { para: '/painel', rotulo: 'Painel', icone: 'painel', principal: true },
-    {
-      para: '/maqueiros',
-      rotulo: 'Maqueiros',
-      icone: 'maqueiros',
-      principal: true,
-    },
-    { para: '/registros', rotulo: 'Registros', icone: 'registros' },
-    {
-      para: '/dashboard',
-      rotulo: 'Dashboard',
-      icone: 'dashboard',
-      principal: true,
-    },
-    { para: '/capacidade', rotulo: 'Capacidade', icone: 'capacidade' },
-    { para: '/relatorios', rotulo: 'Relatórios', icone: 'relatorios' },
-    { para: '/escala', rotulo: 'Escala', icone: 'escala' },
-    { para: '/historico', rotulo: 'Histórico', icone: 'historico' },
-    { para: '/configuracoes', rotulo: 'Configurações', icone: 'configuracoes' },
-  ],
 };
 
 const NOME_PAPEL = {
@@ -89,10 +40,13 @@ export function Layout() {
   const conectado = useRealtimeSync(true);
   const local = useLocation();
   const [menuAberto, setMenuAberto] = useState(false);
-  const itens = MENU[perfil.papel];
-  const principais = itens.filter((i) => i.principal).slice(0, 4);
+  const telas = telasPermitidas(perfil.papel, perfil.perfilAcesso);
+  const atalhos = atalhosCelular(telas);
+  const itens: Item[] = telas.map((t) => ({ para: `/${t.id}`, rotulo: t.rotulo, icone: t.icone, principal: atalhos.includes(t.id) }));
+  const principais = itens.filter((i) => i.principal);
   const atual = itens.find((i) => local.pathname.startsWith(i.para));
-  const subtitulo = `${perfil.papel === 'setor' ? perfil.setorNome : NOME_PAPEL[perfil.papel]} · ${perfil.atorNome}`;
+  const nomePerfil = perfil.perfilAcesso?.nome ?? NOME_PAPEL[perfil.papel];
+  const subtitulo = `${perfil.papel === 'setor' ? `${perfil.setorNome}${perfil.perfilAcesso ? ` (${perfil.perfilAcesso.nome})` : ''}` : nomePerfil} · ${perfil.atorNome}`;
 
   // Fecha o menu do celular ao trocar de tela.
   useEffect(() => setMenuAberto(false), [local.pathname]);

@@ -6,10 +6,11 @@ import { supabase } from '@/lib/supabase';
 import { useConfig, useMaqueiros, useSetores } from '@/hooks/dados';
 import { mensagemErro } from '@/lib/erros';
 import { normalizar } from '@/lib/regras';
-import type { Json, Perfil, Setor } from '@/types/database';
+import type { Json, Perfil, PerfilAcesso, Setor } from '@/types/database';
+import { OpcoesPerfil, PerfisAcesso, nomePerfilUsuario, resolverOpcaoPerfil, usePerfisAcesso, valorOpcaoPerfil } from './PerfisAcesso';
 
 export function ConfiguracoesPage() {
-  const [aba, setAba] = useState<'geral' | 'app' | 'setores' | 'acessos'>('geral');
+  const [aba, setAba] = useState<'geral' | 'app' | 'setores' | 'perfis' | 'acessos'>('geral');
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -19,6 +20,7 @@ export function ConfiguracoesPage() {
             { id: 'geral', rotulo: 'Parâmetros' },
             { id: 'app', rotulo: 'App dos maqueiros' },
             { id: 'setores', rotulo: 'Setores' },
+            { id: 'perfis', rotulo: 'Perfis' },
             { id: 'acessos', rotulo: 'Acessos' },
           ]}
           ativa={aba}
@@ -28,6 +30,7 @@ export function ConfiguracoesPage() {
       {aba === 'geral' && <Parametros />}
       {aba === 'app' && <ConfigApp />}
       {aba === 'setores' && <Setores />}
+      {aba === 'perfis' && <PerfisAcesso />}
       {aba === 'acessos' && <Acessos />}
     </div>
   );
@@ -193,7 +196,9 @@ function Acessos() {
     queryFn: () => adminUsuarios<{ perfis: Perfil[] }>({ acao: 'listar' }).then((r) => r.perfis),
   });
   const [senha, setSenha] = useState<{ usuario: string; senha: string } | null>(null);
-  const [novo, setNovo] = useState({ papel: 'setor', setor_id: '', usuario: '', nome: '' });
+  const { data: perfisAcesso = [] } = usePerfisAcesso();
+  const [novo, setNovo] = useState({ opcao: 'papel:setor', setor_id: '', usuario: '', nome: '' });
+  const novoResolvido = resolverOpcaoPerfil(novo.opcao, perfisAcesso);
   const acao = useMutation({
     mutationFn: (body: Record<string, unknown>) => adminUsuarios<{ usuario: string; senha?: string }>(body),
     onSuccess: (r) => {
@@ -207,7 +212,6 @@ function Acessos() {
   const [editando, setEditando] = useState<(Perfil & { aprovar?: boolean }) | null>(null);
   const pendentes = (lista.data ?? []).filter((p) => !p.ativo && !p.aprovado_em);
   const demais = (lista.data ?? []).filter((p) => p.ativo || p.aprovado_em);
-  const NOME_PAPEL: Record<string, string> = { gestao: 'Gestão NIR', telefonista: 'Telefonista', setor: 'Enfermagem', maqueiro: 'Maqueiro' };
 
   return (
     <div className="space-y-4">
@@ -229,7 +233,7 @@ function Acessos() {
                 <tr key={p.id}>
                   <td className="font-semibold">{p.nome}</td>
                   <td className="font-mono">{p.usuario}</td>
-                  <td>{NOME_PAPEL[p.papel] ?? p.papel}</td>
+                  <td>{nomePerfilUsuario(p.papel, p.perfil_acesso_id, perfisAcesso)}</td>
                   <td>{setorNome(p.setor_id) || maqueiroNome(p.maqueiro_id)}</td>
                   <td className="whitespace-nowrap">{new Date(p.created_at).toLocaleString('pt-BR')}</td>
                   <td className="flex gap-2">
@@ -250,13 +254,11 @@ function Acessos() {
       <Cartao titulo="Criar acesso">
         <div className="grid gap-3 sm:grid-cols-4">
           <Campo rotulo="Perfil" htmlFor="ac_papel">
-            <Selecao id="ac_papel" value={novo.papel} onChange={(e) => setNovo({ ...novo, papel: e.target.value })}>
-              <option value="setor">Setor (enfermagem)</option>
-              <option value="telefonista">Telefonista</option>
-              <option value="gestao">Gestão NIR</option>
+            <Selecao id="ac_papel" value={novo.opcao} onChange={(e) => setNovo({ ...novo, opcao: e.target.value })}>
+              <OpcoesPerfil perfis={perfisAcesso} />
             </Selecao>
           </Campo>
-          {novo.papel === 'setor' && (
+          {novoResolvido.papel === 'setor' && (
             <Campo rotulo="Setor" htmlFor="ac_setor">
               <Selecao
                 id="ac_setor"
@@ -287,8 +289,16 @@ function Acessos() {
         <Botao
           className="mt-3"
           carregando={acao.isPending}
-          disabled={!novo.usuario || (novo.papel === 'setor' && !novo.setor_id)}
-          onClick={() => acao.mutate({ acao: 'criar', ...novo, setor_id: novo.papel === 'setor' ? novo.setor_id : null })}
+          disabled={!novo.usuario || (novoResolvido.papel === 'setor' && !novo.setor_id)}
+          onClick={() =>
+            acao.mutate({
+              acao: 'criar',
+              usuario: novo.usuario,
+              nome: novo.nome,
+              ...novoResolvido,
+              setor_id: novoResolvido.papel === 'setor' ? novo.setor_id : null,
+            })
+          }
         >
           Criar acesso e gerar senha
         </Botao>
@@ -314,7 +324,7 @@ function Acessos() {
             {demais.map((p) => (
               <tr key={p.id} className={!p.ativo ? 'opacity-50' : ''}>
                 <td className="font-mono">{p.usuario}</td>
-                <td>{NOME_PAPEL[p.papel] ?? p.papel}</td>
+                <td>{nomePerfilUsuario(p.papel, p.perfil_acesso_id, perfisAcesso)}</td>
                 <td>{p.nome}</td>
                 <td>{setorNome(p.setor_id) || maqueiroNome(p.maqueiro_id)}</td>
                 <td>{p.ativo ? 'Ativo' : 'Bloqueado'}</td>
@@ -339,6 +349,7 @@ function Acessos() {
         <Modal aberto aoFechar={() => setEditando(null)} titulo={editando.aprovar ? `Aprovar ${editando.nome}` : `Perfil de ${editando.usuario}`}>
           <PerfilForm
             inicial={editando}
+            perfisAcesso={perfisAcesso}
             setores={setores.filter((s) => s.ativo)}
             maqueiros={maqueiros}
             textoBotao={editando.aprovar ? 'Aprovar acesso' : 'Salvar'}
@@ -376,18 +387,21 @@ function Acessos() {
 
 function PerfilForm({
   inicial,
+  perfisAcesso,
   setores,
   maqueiros,
   textoBotao,
   aoSalvar,
 }: {
   inicial: Perfil;
+  perfisAcesso: PerfilAcesso[];
   setores: Setor[];
   maqueiros: { id: string; nome: string }[];
   textoBotao: string;
-  aoSalvar: (v: { papel: string; setor_id: string | null; maqueiro_id: string | null; nome: string }) => Promise<void>;
+  aoSalvar: (v: { papel: string; perfil_acesso_id: string | null; setor_id: string | null; maqueiro_id: string | null; nome: string }) => Promise<void>;
 }) {
-  const [papel, setPapel] = useState(inicial.papel);
+  const [opcao, setOpcao] = useState(valorOpcaoPerfil(inicial.papel, inicial.perfil_acesso_id));
+  const { papel, perfil_acesso_id } = resolverOpcaoPerfil(opcao, perfisAcesso);
   const [setorId, setSetorId] = useState(inicial.setor_id ?? '');
   const [maqueiroId, setMaqueiroId] = useState(inicial.maqueiro_id ?? '');
   const [nome, setNome] = useState(inicial.nome);
@@ -399,11 +413,8 @@ function PerfilForm({
         <Entrada id="pf_nome" value={nome} onChange={(e) => setNome(e.target.value)} />
       </Campo>
       <Campo rotulo="Perfil" htmlFor="pf_papel">
-        <Selecao id="pf_papel" value={papel} onChange={(e) => setPapel(e.target.value)}>
-          <option value="setor">Setor (enfermagem)</option>
-          <option value="telefonista">Telefonista</option>
-          <option value="maqueiro">Maqueiro (app)</option>
-          <option value="gestao">Gestão NIR</option>
+        <Selecao id="pf_papel" value={opcao} onChange={(e) => setOpcao(e.target.value)}>
+          <OpcoesPerfil perfis={perfisAcesso} comMaqueiro atualId={inicial.perfil_acesso_id} />
         </Selecao>
       </Campo>
       {papel === 'maqueiro' && (
@@ -437,6 +448,7 @@ function PerfilForm({
           setSalvando(true);
           await aoSalvar({
             papel,
+            perfil_acesso_id,
             setor_id: papel === 'setor' ? setorId : null,
             maqueiro_id: papel === 'maqueiro' ? maqueiroId : null,
             nome: nome.trim(),

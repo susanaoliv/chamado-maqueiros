@@ -1,10 +1,11 @@
 // Edge Function: gestão de acessos (somente perfil "gestao").
 // Ações:
 //   listar                                  → perfis cadastrados
-//   criar     { usuario, papel, nome, setor_id? }  → cria login e devolve senha aleatória
+//   criar     { usuario, papel, nome, setor_id?, perfil_acesso_id? }  → cria login e devolve senha aleatória
 //   redefinir { usuario }                   → nova senha aleatória
 //   ativar    { usuario, ativo }            → aprova/desbloqueia ou recusa/bloqueia o login (nunca exclui)
-//   alterar   { usuario, papel, setor_id?, maqueiro_id?, nome? } → ajusta perfil e setor (ex.: ao aprovar um autocadastro)
+//   alterar   { usuario, papel, setor_id?, maqueiro_id?, nome?, perfil_acesso_id? } → ajusta perfil e setor (ex.: ao aprovar um autocadastro)
+// perfil_acesso_id = perfil personalizado (Configurações → Perfis); o papel tem que ser o nível desse perfil.
 // A service_role só existe aqui (variável de ambiente do Supabase), nunca no front.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
@@ -29,7 +30,7 @@ function senhaAleatoria(tamanho = 10) {
 function normalizarUsuario(u: string) {
   return u
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '');
 }
@@ -51,11 +52,28 @@ Deno.serve(async (req) => {
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
   const { data: perfilChamador } = await admin
     .from('perfis')
-    .select('papel, ativo, usuario')
+    .select('papel, ativo, usuario, perfil_acesso_id')
     .eq('id', userData.user.id)
     .maybeSingle();
   if (!perfilChamador || perfilChamador.papel !== 'gestao' || !perfilChamador.ativo) {
     return resposta({ erro: 'Somente a gestão pode gerenciar acessos' }, 403);
+  }
+  // Perfil personalizado de nível gestão só gerencia acessos se tiver a tela Configurações.
+  if (perfilChamador.perfil_acesso_id) {
+    const { data: pa } = await admin.from('perfis_acesso').select('telas').eq('id', perfilChamador.perfil_acesso_id).maybeSingle();
+    if (!pa || !(pa.telas as string[]).includes('configuracoes')) {
+      return resposta({ erro: 'Seu perfil não tem acesso às Configurações' }, 403);
+    }
+  }
+
+  // Confere o perfil personalizado escolhido: precisa existir, estar ativo e ser do mesmo nível do papel.
+  async function perfilAcessoValido(id: string | null, papel: string): Promise<string | null> {
+    if (!id) return null;
+    const { data: pa } = await admin.from('perfis_acesso').select('papel_base, ativo, nome').eq('id', id).maybeSingle();
+    if (!pa) return 'Perfil de acesso não encontrado';
+    if (!pa.ativo) return `O perfil "${pa.nome}" está desativado`;
+    if (pa.papel_base !== papel) return `O perfil "${pa.nome}" não confere com o nível escolhido`;
+    return null;
   }
 
   let body: Record<string, unknown>;
@@ -69,7 +87,7 @@ Deno.serve(async (req) => {
   if (acao === 'listar') {
     const { data, error } = await admin
       .from('perfis')
-      .select('id, usuario, papel, nome, setor_id, maqueiro_id, ativo, aprovado_em, aprovado_por, created_at')
+      .select('id, usuario, papel, nome, setor_id, maqueiro_id, perfil_acesso_id, ativo, aprovado_em, aprovado_por, created_at')
       .order('papel')
       .order('usuario');
     if (error) return resposta({ erro: error.message }, 500);
@@ -82,10 +100,13 @@ Deno.serve(async (req) => {
     const nome = String(body.nome ?? '').trim() || usuario;
     const setorId = body.setor_id ? String(body.setor_id) : null;
     const maqueiroId = body.maqueiro_id ? String(body.maqueiro_id) : null;
+    const perfilAcessoId = body.perfil_acesso_id ? String(body.perfil_acesso_id) : null;
     if (!usuario || usuario.length < 3) return resposta({ erro: 'Usuário inválido (mínimo 3 letras/números)' }, 400);
     if (!['gestao', 'telefonista', 'setor', 'maqueiro'].includes(papel)) return resposta({ erro: 'Papel inválido' }, 400);
     if (papel === 'setor' && !setorId) return resposta({ erro: 'Informe o setor' }, 400);
     if (papel === 'maqueiro' && !maqueiroId) return resposta({ erro: 'Informe o maqueiro' }, 400);
+    const erroPerfil = await perfilAcessoValido(perfilAcessoId, papel);
+    if (erroPerfil) return resposta({ erro: erroPerfil }, 400);
 
     const senha = senhaAleatoria();
     const { data: criado, error } = await admin.auth.admin.createUser({
@@ -103,6 +124,7 @@ Deno.serve(async (req) => {
       nome,
       setor_id: papel === 'setor' ? setorId : null,
       maqueiro_id: papel === 'maqueiro' ? maqueiroId : null,
+      perfil_acesso_id: perfilAcessoId,
       aprovado_em: new Date().toISOString(),
       aprovado_por: perfilChamador.usuario,
     });
@@ -148,18 +170,22 @@ Deno.serve(async (req) => {
     const setorId = body.setor_id ? String(body.setor_id) : null;
     const maqueiroId = body.maqueiro_id ? String(body.maqueiro_id) : null;
     const nome = body.nome === undefined ? undefined : String(body.nome).trim();
+    const perfilAcessoId = body.perfil_acesso_id ? String(body.perfil_acesso_id) : null;
     if (!['gestao', 'telefonista', 'setor', 'maqueiro'].includes(papel)) return resposta({ erro: 'Papel inválido' }, 400);
     if (papel === 'setor' && !setorId) return resposta({ erro: 'Informe o setor' }, 400);
     if (papel === 'maqueiro' && !maqueiroId) return resposta({ erro: 'Informe o maqueiro' }, 400);
-    if (usuario === perfilChamador.usuario && papel !== 'gestao') {
-      return resposta({ erro: 'Você não pode tirar o próprio perfil de gestão' }, 400);
+    if (usuario === perfilChamador.usuario && (papel !== 'gestao' || perfilAcessoId !== perfilChamador.perfil_acesso_id)) {
+      return resposta({ erro: 'Você não pode mudar o próprio perfil' }, 400);
     }
+    const erroPerfil = await perfilAcessoValido(perfilAcessoId, papel);
+    if (erroPerfil) return resposta({ erro: erroPerfil }, 400);
     const { data: perfil } = await admin.from('perfis').select('id').eq('usuario', usuario).maybeSingle();
     if (!perfil) return resposta({ erro: 'Usuário não encontrado' }, 404);
     const dados: Record<string, unknown> = {
       papel,
       setor_id: papel === 'setor' ? setorId : null,
       maqueiro_id: papel === 'maqueiro' ? maqueiroId : null,
+      perfil_acesso_id: perfilAcessoId,
     };
     if (nome) dados.nome = nome;
     const { error } = await admin.from('perfis').update(dados).eq('id', perfil.id);
