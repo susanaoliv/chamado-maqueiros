@@ -91,7 +91,7 @@ export type Database = {
         perfil_acesso_id: string | null;
       }>;
       perfis_acesso: Tabela<{
-        id: string; nome: string; descricao: string | null; papel_base: 'gestao' | 'telefonista' | 'setor'; telas: string[];
+        id: string; nome: string; descricao: string | null; papel_base: 'gestao' | 'telefonista' | 'setor' | 'maqueiro'; telas: string[];
         ativo: boolean; created_at: string;
       }>;
       maqueiros: Tabela<{

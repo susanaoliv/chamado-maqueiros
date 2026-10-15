@@ -2,7 +2,7 @@ import type { NomeIcone } from '@/components/Icone';
 import type { PerfilAcesso } from '@/types/database';
 
 export type Papel = 'gestao' | 'telefonista' | 'setor' | 'maqueiro';
-export type NivelPerfil = 'gestao' | 'telefonista' | 'setor';
+export type NivelPerfil = 'gestao' | 'telefonista' | 'setor' | 'maqueiro';
 
 export type Tela = { id: string; rotulo: string; icone: NomeIcone; descricao: string };
 
@@ -19,6 +19,7 @@ export const TELAS: Tela[] = [
   { id: 'escala', rotulo: 'Escala', icone: 'escala', descricao: 'Escala mensal dos maqueiros' },
   { id: 'historico', rotulo: 'Histórico', icone: 'historico', descricao: 'Auditoria de todas as alterações' },
   { id: 'configuracoes', rotulo: 'Configurações', icone: 'configuracoes', descricao: 'Parâmetros, setores, perfis e acessos' },
+  { id: 'app', rotulo: 'App do maqueiro', icone: 'maqueiros', descricao: 'Receber, aceitar e concluir chamados no celular' },
 ];
 
 /** Telas que cada nível de permissão pode usar (igual à função telas_do_papel do banco). */
@@ -26,7 +27,7 @@ export const TELAS_DO_NIVEL: Record<Papel, string[]> = {
   gestao: ['central', 'painel', 'maqueiros', 'registros', 'dashboard', 'capacidade', 'relatorios', 'escala', 'historico', 'configuracoes'],
   telefonista: ['central', 'painel', 'maqueiros', 'registros'],
   setor: ['meus-chamados'],
-  maqueiro: [],
+  maqueiro: ['app'],
 };
 
 /** Atalhos da barra de baixo do celular (no máximo 4), em ordem de preferência. */
@@ -36,6 +37,7 @@ export const NOME_NIVEL: Record<NivelPerfil, string> = {
   gestao: 'Gestão NIR (acesso completo)',
   telefonista: 'Central de telefonistas',
   setor: 'Enfermagem do setor',
+  maqueiro: 'Maqueiro (app do celular)',
 };
 
 /** Perfis que já vêm no sistema e não podem ser editados. */

@@ -12,7 +12,7 @@ describe('telas por perfil', () => {
     expect(telasPermitidas('gestao', null).map((t) => t.id)).toEqual(TELAS_DO_NIVEL.gestao);
     expect(telasPermitidas('telefonista', null).map((t) => t.id)).toEqual(['central', 'painel', 'maqueiros', 'registros']);
     expect(telasPermitidas('setor', null).map((t) => t.id)).toEqual(['meus-chamados']);
-    expect(telasPermitidas('maqueiro', null)).toEqual([]);
+    expect(telasPermitidas('maqueiro', null).map((t) => t.id)).toEqual(['app']);
   });
 
   it('perfil personalizado mostra só as telas marcadas, na ordem do menu', () => {

@@ -157,12 +157,14 @@ planilha de cada mês.
 | `maqueiro` (app no celular) | App (`/app`) | iniciar/encerrar jornada (GPS dentro do hospital e escala/habilitação), receber, aceitar ou recusar chamados, atualizar andamento, concluir, intervalo |
 
 **Perfis personalizados** (Configurações → **Perfis**, migration 10): a gestão cria perfis novos
-(ex.: Supervisão de enfermagem, Diretoria, Qualidade) escolhendo o **nível de permissão** (Gestão NIR,
-Central ou Enfermagem do setor) e as **telas** que o perfil enxerga, entre as que o nível permite. Em
+(ex.: Supervisão de enfermagem, Diretoria, Qualidade, Maqueiro CC) escolhendo o **nível de permissão** (Gestão NIR,
+Central, Enfermagem do setor ou Maqueiro) e as **telas** que o perfil enxerga, entre as que o nível permite. Em
 **Acessos**, o perfil aparece na lista junto com os padrão.
 - O nível é o que vale no banco (RLS e RPCs); as telas desmarcadas somem do menu e a rota é bloqueada.
 - O nível não muda depois de criado; perfil com usuário ativo não pode ser desativado; nada é apagado e
   toda mudança vai para o Histórico (tabela `perfis_acesso`, coluna `perfis.perfil_acesso_id`).
+- Nível **Maqueiro** (migration 11): mesmas permissões do maqueiro padrão (só o app); serve para separar grupos.
+  Em Acessos → Criar acesso, escolha o perfil e o nome do maqueiro na escala.
 - Perfil de nível Gestão só cria/edita usuários se tiver a tela Configurações marcada (checado na Edge Function).
 
 **App do maqueiro e distribuição automática** (migration 9):

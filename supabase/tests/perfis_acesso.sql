@@ -50,7 +50,10 @@ end $$;
 select pg_temp.deve_falhar($$insert into public.perfis_acesso (nome, papel_base, telas) values ('diretoria', 'gestao', array['dashboard'])$$, 'duplicate', 'nome repetido (sem diferenciar maiúsculas)');
 select pg_temp.deve_falhar($$insert into public.perfis_acesso (nome, papel_base, telas) values ('Central noturna', 'telefonista', array['central','dashboard'])$$, 'não permitidas', 'tela fora do nível');
 select pg_temp.deve_falhar($$insert into public.perfis_acesso (nome, papel_base, telas) values ('Vazio', 'telefonista', array[]::text[])$$, 'pelo menos uma tela', 'perfil sem tela');
-select pg_temp.deve_falhar($$insert into public.perfis_acesso (nome, papel_base, telas) values ('Maqueiro 2', 'maqueiro', array['central'])$$, 'Nível de permissão inválido', 'nível maqueiro não permitido');
+select pg_temp.deve_falhar($$insert into public.perfis_acesso (nome, papel_base, telas) values ('Maqueiro 2', 'maqueiro', array['central'])$$, 'não permitidas', 'nível maqueiro só tem o app');
+select pg_temp.deve_falhar($$insert into public.perfis_acesso (nome, papel_base, telas) values ('Outro', 'visitante', array['app'])$$, 'Nível de permissão inválido', 'nível inexistente');
+insert into public.perfis_acesso (id, nome, papel_base, telas) values ('00000000-0000-0000-0000-00000000aa02', 'Maqueiro CC', 'maqueiro', array['app']);
+do $$ begin raise notice 'ok: gestão cria perfil de nível maqueiro'; end $$;
 select pg_temp.deve_falhar($$update public.perfis_acesso set papel_base = 'telefonista', telas = array['central'] where id = '00000000-0000-0000-0000-00000000aa01'$$, 'não pode ser trocado', 'nível imutável');
 
 reset role;
@@ -71,6 +74,17 @@ reset role;
 update public.perfis set perfil_acesso_id = '00000000-0000-0000-0000-00000000aa01' where usuario = 'pa_diretoria';
 select pg_temp.deve_falhar($$update public.perfis set perfil_acesso_id = '00000000-0000-0000-0000-00000000aa01' where usuario = 'pa_tel'$$, 'não confere', 'papel diferente do nível');
 select pg_temp.deve_falhar($$update public.perfis set papel = 'telefonista' where usuario = 'pa_diretoria'$$, 'não confere', 'trocar papel mantendo perfil');
+
+-- 2b) Maqueiro com perfil de grupo (nível maqueiro) mantém o vínculo e o papel
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000b4', 'pa_maq@maqueiros.cssl');
+insert into public.perfis (id, usuario, papel, nome, maqueiro_id, perfil_acesso_id) values
+  ('00000000-0000-0000-0000-0000000000b4', 'pa_maq', 'maqueiro', 'Maq CC', (select id from public.maqueiros order by nome limit 1), '00000000-0000-0000-0000-00000000aa02');
+select pg_temp.deve_falhar($$update public.perfis set perfil_acesso_id = '00000000-0000-0000-0000-00000000aa02' where usuario = 'pa_tel'$$, 'não confere', 'telefonista não entra em perfil de maqueiro');
+do $$ begin
+  perform pg_temp.como('00000000-0000-0000-0000-0000000000b4');
+  if public.papel_atual() <> 'maqueiro' or public.meu_maqueiro() is null then raise exception 'FALHOU: maqueiro com perfil perdeu o papel/vínculo'; end if;
+  raise notice 'ok: maqueiro com perfil de grupo continua maqueiro e vinculado';
+end $$;
 
 -- 3) Não desativa perfil com usuário ativo; depois de liberar, desativa e não aceita novos
 select pg_temp.deve_falhar($$update public.perfis_acesso set ativo = false where id = '00000000-0000-0000-0000-00000000aa01'$$, 'usuários ativos', 'desativar com usuário ativo');
