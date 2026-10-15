@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
   // Quem está chamando? Precisa ser gestão.
   const chamador = createClient(url, anonKey, { global: { headers: { Authorization: authHeader } } });
   const { data: userData, error: userErr } = await chamador.auth.getUser();
-  if (userErr || !userData.user) return resposta({ erro: 'Não autenticado' }, 401);
+  if (userErr || !userData.user) return resposta({ erro: 'Sua sessão expirou. Entre de novo no sistema.', sessao_expirada: true }, 401);
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
   const { data: perfilChamador } = await admin
@@ -138,6 +138,10 @@ Deno.serve(async (req) => {
 
   if (acao === 'redefinir') {
     const usuario = normalizarUsuario(String(body.usuario ?? ''));
+    // Gerar senha para si mesmo derrubaria a própria sessão no meio do uso.
+    if (usuario === perfilChamador.usuario) {
+      return resposta({ erro: 'Para trocar a sua própria senha, use "Minha senha" no menu.' }, 400);
+    }
     const { data: perfil } = await admin.from('perfis').select('id').eq('usuario', usuario).maybeSingle();
     if (!perfil) return resposta({ erro: 'Usuário não encontrado' }, 404);
     const senha = senhaAleatoria();

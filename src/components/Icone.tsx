@@ -18,6 +18,7 @@ const CAMINHOS = {
   sair: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
   instalar: 'M12 3v12M7 10l5 5 5-5M5 21h14',
   fechar: 'M18 6 6 18M6 6l12 12',
+  chave: 'M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4',
 } as const;
 
 export type NomeIcone = keyof typeof CAMINHOS;

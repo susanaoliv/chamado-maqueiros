@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useConfig, useMaqueiros, useSetores } from '@/hooks/dados';
 import { mensagemErro } from '@/lib/erros';
 import { normalizar } from '@/lib/regras';
+import { usePerfil } from '@/features/auth/AuthProvider';
 import type { Json, Perfil, PerfilAcesso, Setor } from '@/types/database';
 import { OpcoesPerfil, PerfisAcesso, nomePerfilUsuario, resolverOpcaoPerfil, usePerfisAcesso, valorOpcaoPerfil } from './PerfisAcesso';
 
@@ -174,11 +175,22 @@ async function adminUsuarios<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke('admin-usuarios', { body });
   if (error) {
     let msg = error.message;
+    let expirada = false;
     try {
       const ctx = (error as { context?: Response }).context;
-      if (ctx) msg = (await ctx.json()).erro ?? msg;
+      if (ctx) {
+        expirada = ctx.status === 401;
+        const corpo = await ctx.json();
+        msg = corpo.erro ?? msg;
+        expirada = expirada || !!corpo.sessao_expirada;
+      }
     } catch {
       /* mantém a mensagem original */
+    }
+    if (expirada) {
+      // A sessão deste aparelho caiu (ex.: senha trocada em outro lugar): volta para o login.
+      toast.error('Sua sessão expirou. Entre de novo com seu usuário e senha.');
+      await supabase.auth.signOut();
     }
     throw new Error(msg);
   }
@@ -187,6 +199,7 @@ async function adminUsuarios<T>(body: Record<string, unknown>): Promise<T> {
 }
 
 function Acessos() {
+  const eu = usePerfil().usuario;
   const qc = useQueryClient();
   const { data: setores = [] } = useSetores();
   const { data: maqueiros = [] } = useMaqueiros();
@@ -354,12 +367,25 @@ function Acessos() {
                   <Botao tamanho="sm" variante="secundario" onClick={() => setEditando(p)}>
                     Perfil
                   </Botao>
-                  <Botao tamanho="sm" variante="secundario" onClick={() => acao.mutate({ acao: 'redefinir', usuario: p.usuario })}>
-                    Nova senha
-                  </Botao>
-                  <Botao tamanho="sm" variante="fantasma" onClick={() => acao.mutate({ acao: 'ativar', usuario: p.usuario, ativo: !p.ativo })}>
-                    {p.ativo ? 'Bloquear' : 'Desbloquear'}
-                  </Botao>
+                  {p.usuario === eu ? (
+                    <span className="self-center text-xs text-slate-500">Você · troque em "Minha senha" no menu</span>
+                  ) : (
+                    <>
+                      <Botao
+                        tamanho="sm"
+                        variante="secundario"
+                        onClick={() =>
+                          window.confirm(`Gerar uma senha nova para ${p.usuario}? A senha atual deixa de funcionar e a pessoa sai do sistema nos aparelhos dela.`) &&
+                          acao.mutate({ acao: 'redefinir', usuario: p.usuario })
+                        }
+                      >
+                        Nova senha
+                      </Botao>
+                      <Botao tamanho="sm" variante="fantasma" onClick={() => acao.mutate({ acao: 'ativar', usuario: p.usuario, ativo: !p.ativo })}>
+                        {p.ativo ? 'Bloquear' : 'Desbloquear'}
+                      </Botao>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
