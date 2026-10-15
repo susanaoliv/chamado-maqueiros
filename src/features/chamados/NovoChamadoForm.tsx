@@ -180,6 +180,7 @@ export function NovoChamadoForm({ aoConcluir }: { aoConcluir: () => void }) {
       {/* 5. Paciente */}
       <Campo
         rotulo={somenteNumero ? 'Nº do atendimento' : 'Nome do paciente / nº do atendimento'}
+        obrigatorio
         erro={erros.paciente?.message}
         htmlFor="paciente"
         dica={somenteNumero ? 'Por proteção de dados, informe apenas o número do atendimento.' : undefined}

@@ -98,7 +98,7 @@ export function schemaNovoChamado(ctx: Contexto) {
       setor_destino_id: z.string(),
       destino_outro: z.string(),
       leito_destino: z.string(),
-      paciente: z.string().trim().min(1, ctx.somenteNumeroAtendimento ? 'Informe o nº do atendimento' : 'Informe o paciente'),
+      paciente: z.string().trim().min(1, ctx.somenteNumeroAtendimento ? 'Nº do atendimento obrigatório' : 'Nome do paciente obrigatório'),
       origem_chamado: z.enum(ORIGENS_CHAMADO),
       solicitante: z.string(),
       recurso: z.enum(RECURSOS),

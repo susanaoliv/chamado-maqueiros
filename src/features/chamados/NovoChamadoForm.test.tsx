@@ -54,6 +54,16 @@ describe('NovoChamadoForm', () => {
     expect(screen.getByText(/automático para óbito/i)).toBeInTheDocument();
   });
 
+  it('nome do paciente é obrigatório', async () => {
+    render(<NovoChamadoForm aoConcluir={vi.fn()} />);
+    fireEvent.change(sel(/setor de origem/i), { target: { value: 'sj' } });
+    fireEvent.change(sel(/setor de destino/i), { target: { value: 'tomo' } });
+    fireEvent.change(screen.getByLabelText(/leito de origem/i), { target: { value: '12' } });
+    fireEvent.click(screen.getByRole('button', { name: /registrar chamado/i }));
+    expect(await screen.findByText(/nome do paciente obrigatório/i)).toBeInTheDocument();
+    expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
   it('bloqueia envio sem leito em setor obrigatório e envia quando completo', async () => {
     const aoConcluir = vi.fn();
     render(<NovoChamadoForm aoConcluir={aoConcluir} />);
