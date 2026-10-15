@@ -6,6 +6,7 @@ import { useRealtimeSync } from '@/hooks/dados';
 import { Icone, type NomeIcone } from '@/components/Icone';
 import { BotaoInstalar } from '@/components/InstalarApp';
 import { LogoHospital, SimboloHospital } from '@/components/Marca';
+import { BotaoMinhaSenha } from '@/components/MinhaSenha';
 import { atalhosCelular, telasPermitidas } from '@/lib/telas';
 
 type Item = {
@@ -95,6 +96,7 @@ export function Layout() {
             <AoVivo conectado={conectado} sobreEscuro />
           </div>
           <BotaoInstalar lateral className="w-full" />
+          <BotaoMinhaSenha lateral className="w-full" />
           <button
             onClick={() => sair()}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-marca-50 hover:bg-white/10"
@@ -225,6 +227,7 @@ function MenuCelular({
         </nav>
         <div className="space-y-2 px-4">
           <BotaoInstalar className="w-full" />
+          <BotaoMinhaSenha className="w-full" />
           <button
             type="button"
             onClick={aoSair}
