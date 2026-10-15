@@ -314,7 +314,7 @@ function Acessos() {
               </Selecao>
             </Campo>
           )}
-          <Campo rotulo="Usuário" htmlFor="ac_usuario" dica="Sem acento e sem espaço.">
+          <Campo rotulo="Usuário" htmlFor="ac_usuario" dica={`Sem acento e sem espaço. Senha: ${novo.usuario || 'usuario'}@2026`}>
             <Entrada id="ac_usuario" value={novo.usuario} onChange={(e) => setNovo({ ...novo, usuario: normalizar(e.target.value) })} />
           </Campo>
           <Campo rotulo="Nome exibido" htmlFor="ac_nome">
@@ -336,7 +336,7 @@ function Acessos() {
             })
           }
         >
-          Criar acesso e gerar senha
+          Criar acesso
         </Botao>
       </Cartao>
 
@@ -379,11 +379,13 @@ function Acessos() {
                         tamanho="sm"
                         variante="secundario"
                         onClick={() =>
-                          window.confirm(`Gerar uma senha nova para ${p.usuario}? A senha atual deixa de funcionar e a pessoa sai do sistema nos aparelhos dela.`) &&
+                          window.confirm(
+                            `Voltar a senha de ${p.usuario} para o padrão (${p.usuario}@2026)? A senha atual deixa de funcionar e a pessoa sai do sistema nos aparelhos dela.`,
+                          ) &&
                           acao.mutate({ acao: 'redefinir', usuario: p.usuario })
                         }
                       >
-                        Nova senha
+                        Senha padrão
                       </Botao>
                       <Botao tamanho="sm" variante="fantasma" onClick={() => acao.mutate({ acao: 'ativar', usuario: p.usuario, ativo: !p.ativo })}>
                         {p.ativo ? 'Bloquear' : 'Desbloquear'}
@@ -421,8 +423,10 @@ function Acessos() {
       )}
 
       {senha && (
-        <Modal aberto aoFechar={() => setSenha(null)} titulo="Senha gerada">
-          <p className="text-sm">Anote e entregue por canal seguro. Ela não será mostrada de novo.</p>
+        <Modal aberto aoFechar={() => setSenha(null)} titulo="Acesso pronto">
+          <p className="text-sm">
+            A senha segue o padrão <b>usuário + @2026</b>. Se quiser, a pessoa troca depois em <b>Minha senha</b>.
+          </p>
           <div className="mt-3 rounded-lg bg-slate-100 p-4 font-mono text-lg dark:bg-slate-800">
             usuário: <strong>{senha.usuario}</strong>
             <br />
