@@ -3,7 +3,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { AreaTexto, Botao, Campo, Entrada, Selecao, SimNao } from '@/components/ui';
-import { ORIGENS_CHAMADO, PRIORIDADES, RECURSOS, TIPOS_CHAMADO } from '@/lib/constantes';
+import { PRIORIDADES, RECURSOS, TIPOS_CHAMADO } from '@/lib/constantes';
 import {
   DESTINO_OUTRO,
   destinoTravadoNecroterio,
@@ -188,16 +188,8 @@ export function NovoChamadoForm({ aoConcluir }: { aoConcluir: () => void }) {
       </Campo>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {/* 6. Origem do chamado */}
-        {!ehSetor && (
-          <Campo rotulo="Origem do chamado" htmlFor="origem_chamado">
-            <Selecao id="origem_chamado" {...register('origem_chamado')}>
-              {ORIGENS_CHAMADO.map((o) => (
-                <option key={o}>{o}</option>
-              ))}
-            </Selecao>
-          </Campo>
-        )}
+        {/* 6. Origem do chamado: não aparece mais no formulário; fica registrada automaticamente
+            (Central = "Telefone/central", Enfermagem = "Setor (enfermagem)") */}
         {/* 7. Solicitante */}
         <Campo rotulo="Nome de quem está solicitando" obrigatorio={ehSetor} erro={erros.solicitante?.message} htmlFor="solicitante">
           <Entrada id="solicitante" invalido={!!erros.solicitante} {...register('solicitante')} />
