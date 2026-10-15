@@ -229,17 +229,19 @@ export function Modal({
       }}
       className={clsx(
         'w-[calc(100%-1.5rem)] rounded-2xl border border-slate-200 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-900/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100',
+        // No celular a janela vira uma "gaveta" que sobe de baixo, ocupando a largura toda.
+        'max-sm:bottom-0 max-sm:top-auto max-sm:m-0 max-sm:w-full max-sm:max-w-full max-sm:rounded-b-none max-sm:border-x-0 max-sm:border-b-0',
         largura,
       )}
     >
-      <div className="flex max-h-[90vh] flex-col">
+      <div className="flex max-h-[90dvh] flex-col">
         <header className="flex items-center justify-between border-b border-slate-200 px-5 py-3 dark:border-slate-700">
           <h2 className="text-lg font-bold">{titulo}</h2>
           <button type="button" onClick={aoFechar} aria-label="Fechar" className="rounded-lg p-2 text-xl leading-none hover:bg-slate-100 dark:hover:bg-slate-800">
             ×
           </button>
         </header>
-        <div className="overflow-y-auto px-5 py-4">{children}</div>
+        <div className="overflow-y-auto px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:px-5">{children}</div>
       </div>
     </dialog>
   );
@@ -250,7 +252,7 @@ export function Modal({
 // ----------------------------------------------------------------------------
 export function Abas<T extends string>({ abas, ativa, onChange }: { abas: { id: T; rotulo: string }[]; ativa: T; onChange: (id: T) => void }) {
   return (
-    <div role="tablist" className="flex flex-wrap gap-1 rounded-xl bg-slate-200/70 p-1 dark:bg-slate-800">
+    <div role="tablist" className="flex gap-1 overflow-x-auto rounded-xl bg-slate-200/70 p-1 dark:bg-slate-800 sm:flex-wrap">
       {abas.map((a) => (
         <button
           key={a.id}
@@ -258,7 +260,7 @@ export function Abas<T extends string>({ abas, ativa, onChange }: { abas: { id: 
           aria-selected={ativa === a.id}
           onClick={() => onChange(a.id)}
           className={clsx(
-            'rounded-lg px-3 py-1.5 text-sm font-semibold transition',
+            'shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold transition',
             ativa === a.id ? 'bg-white text-marca-700 shadow dark:bg-slate-950 dark:text-marca-100' : 'text-slate-600 hover:text-slate-900 dark:text-slate-300',
           )}
         >

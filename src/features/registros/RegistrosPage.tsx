@@ -48,8 +48,15 @@ export function RegistrosPage() {
   const hoje = hojeLocal();
   const [de, setDe] = useState(hoje);
   const [ate, setAte] = useState(hoje);
-  const [f, setF] = useState({ setor: '', status: '', maqueiro: '', busca: '' });
+  const [f, setF] = useState({
+    setor: '',
+    status: '',
+    maqueiro: '',
+    busca: '',
+  });
   const [aberto, setAberto] = useState<ChamadoMetrica | null>(null);
+  const [verFiltros, setVerFiltros] = useState(false);
+  const filtrosAtivos = [f.setor, f.status, f.maqueiro].filter(Boolean).length;
   const [ini, fim] = de <= ate ? [de, ate] : [ate, de];
   const { data, isLoading, error } = useChamadosPeriodo(localParaIso(ini), localParaIso(addDia(fim, 1)));
   const { data: setores = [] } = useSetores();
@@ -87,7 +94,7 @@ export function RegistrosPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">Registros de chamados</h1>
-          <p className="text-sm text-slate-500">Consulte horários e tempos de cada chamado. Clique numa linha para ver a linha do tempo completa.</p>
+          <p className="text-sm text-slate-500">Consulte horários e tempos de cada chamado. Toque num chamado para ver a linha do tempo completa.</p>
         </div>
         <div className="flex gap-2">
           <Botao variante="secundario" onClick={() => exportar('xlsx')} disabled={!linhas.length}>
@@ -99,14 +106,14 @@ export function RegistrosPage() {
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <Campo rotulo="De" htmlFor="rg_de">
           <Entrada id="rg_de" type="date" value={de} onChange={(e) => e.target.value && setDe(e.target.value)} />
         </Campo>
         <Campo rotulo="Até" htmlFor="rg_ate">
           <Entrada id="rg_ate" type="date" value={ate} onChange={(e) => e.target.value && setAte(e.target.value)} />
         </Campo>
-        <Campo rotulo="Setor (origem ou destino)" htmlFor="rg_setor">
+        <Campo rotulo="Setor (origem ou destino)" htmlFor="rg_setor" className={clsx('col-span-2 sm:col-span-1 sm:block', !verFiltros && 'hidden')}>
           <Selecao id="rg_setor" value={f.setor} onChange={(e) => setF({ ...f, setor: e.target.value })}>
             <option value="">Todos</option>
             {setores.map((s) => (
@@ -114,7 +121,7 @@ export function RegistrosPage() {
             ))}
           </Selecao>
         </Campo>
-        <Campo rotulo="Status" htmlFor="rg_status">
+        <Campo rotulo="Status" htmlFor="rg_status" className={clsx('col-span-2 sm:col-span-1 sm:block', !verFiltros && 'hidden')}>
           <Selecao id="rg_status" value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}>
             <option value="">Todos</option>
             {(Object.keys(STATUS_INFO) as (StatusChamado | 'atrasado')[]).map((s) => (
@@ -124,7 +131,7 @@ export function RegistrosPage() {
             ))}
           </Selecao>
         </Campo>
-        <Campo rotulo="Maqueiro" htmlFor="rg_maq">
+        <Campo rotulo="Maqueiro" htmlFor="rg_maq" className={clsx('col-span-2 sm:col-span-1 sm:block', !verFiltros && 'hidden')}>
           <Selecao id="rg_maq" value={f.maqueiro} onChange={(e) => setF({ ...f, maqueiro: e.target.value })}>
             <option value="">Todos</option>
             {maqueiros.map((m) => (
@@ -132,9 +139,17 @@ export function RegistrosPage() {
             ))}
           </Selecao>
         </Campo>
-        <Campo rotulo="Buscar" htmlFor="rg_busca">
+        <Campo rotulo="Buscar" htmlFor="rg_busca" className="col-span-2 sm:col-span-1">
           <Entrada id="rg_busca" value={f.busca} onChange={(e) => setF({ ...f, busca: e.target.value })} placeholder="nº, paciente, leito…" />
         </Campo>
+        <button
+          type="button"
+          onClick={() => setVerFiltros((v) => !v)}
+          aria-expanded={verFiltros}
+          className="col-span-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200 sm:hidden"
+        >
+          {verFiltros ? 'Menos filtros' : `Mais filtros${filtrosAtivos ? ` (${filtrosAtivos} ativo${filtrosAtivos > 1 ? 's' : ''})` : ''}`}
+        </button>
       </div>
 
       {isLoading ? (
@@ -143,7 +158,7 @@ export function RegistrosPage() {
         <Erro erro={error} />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-5">
             <Kpi titulo="Chamados" valor={r.total} cor="blue" />
             <Kpi titulo="Concluídos" valor={r.concluidos} cor="green" />
             <Kpi titulo="Cancelados" valor={r.cancelados} cor="slate" />
@@ -153,53 +168,90 @@ export function RegistrosPage() {
           {linhas.length === 0 ? (
             <Vazio>Nenhum chamado encontrado com esses filtros.</Vazio>
           ) : (
-            <Tabela>
-              <thead>
-                <tr>
-                  <th>Número</th>
-                  <th>Abertura</th>
-                  <th>Trajeto</th>
-                  <th>Tipo</th>
-                  <th>Status</th>
-                  <th>Maqueiro</th>
-                  <th>Acionado</th>
-                  <th>Início</th>
-                  <th>Término</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
+            <>
+              {/* Celular: um cartão por chamado */}
+              <ul className="space-y-2 md:hidden">
                 {linhas.map((c) => (
-                  <tr
-                    key={c.id}
-                    tabIndex={0}
-                    onClick={() => setAberto(c)}
-                    onKeyDown={(e) => e.key === 'Enter' && setAberto(c)}
-                    className={clsx('cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60', c.atrasado && 'text-red-700 dark:text-red-300')}
-                  >
-                    <td className="whitespace-nowrap font-mono text-xs font-bold">{c.numero}</td>
-                    <td className="whitespace-nowrap">{fmtDataHora(c.aberto_em)}</td>
-                    <td className="min-w-48">
-                      {c.setor_origem_nome}
-                      {c.leito_origem && ` (${c.leito_origem})`} → {c.setor_destino_nome ?? '—'}
-                      {c.leito_destino && ` (${c.leito_destino})`}
-                    </td>
-                    <td>{c.tipo}</td>
-                    <td>
-                      <StatusSelo status={c.status} atrasado={c.atrasado} />
-                    </td>
-                    <td>{c.maqueiro_nome ?? '—'}</td>
-                    <td className="whitespace-nowrap">
-                      {fmtHora(c.maqueiro_informado_em)}
-                      {c.min_acionamento !== null && <span className="text-xs text-slate-500"> (+{fmtDuracao(Number(c.min_acionamento))})</span>}
-                    </td>
-                    <td>{fmtHora(c.inicio_atendimento_em)}</td>
-                    <td>{fmtHora(c.encerrado_em ?? c.cancelado_em)}</td>
-                    <td className="whitespace-nowrap font-semibold">{c.min_total === null ? '—' : fmtDuracao(Number(c.min_total))}</td>
-                  </tr>
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onClick={() => setAberto(c)}
+                      className={clsx(
+                        'w-full rounded-xl border bg-white p-3 text-left text-sm shadow-sm active:bg-slate-50 dark:bg-slate-900 dark:active:bg-slate-800',
+                        c.atrasado ? 'border-red-300 dark:border-red-800' : 'border-slate-200 dark:border-slate-800',
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs font-bold">{c.numero}</span>
+                        <StatusSelo status={c.status} atrasado={c.atrasado} />
+                      </div>
+                      <div className="mt-1 font-semibold">
+                        {c.setor_origem_nome}
+                        {c.leito_origem && ` (${c.leito_origem})`} → {c.setor_destino_nome ?? '—'}
+                        {c.leito_destino && ` (${c.leito_destino})`}
+                      </div>
+                      <div className="text-slate-500">
+                        {c.tipo} · {fmtDataHora(c.aberto_em)}
+                      </div>
+                      <div className="mt-1 flex flex-wrap justify-between gap-x-3 text-xs text-slate-600 dark:text-slate-300">
+                        <span className="truncate">{c.maqueiro_nome ?? 'Sem maqueiro'}</span>
+                        <span className="whitespace-nowrap font-semibold">
+                          {c.min_acionamento !== null && `acion. ${fmtDuracao(Number(c.min_acionamento))} · `}
+                          total {c.min_total === null ? '—' : fmtDuracao(Number(c.min_total))}
+                        </span>
+                      </div>
+                    </button>
+                  </li>
                 ))}
-              </tbody>
-            </Tabela>
+              </ul>
+              <Tabela className="hidden md:block">
+                <thead>
+                  <tr>
+                    <th>Número</th>
+                    <th>Abertura</th>
+                    <th>Trajeto</th>
+                    <th>Tipo</th>
+                    <th>Status</th>
+                    <th>Maqueiro</th>
+                    <th>Acionado</th>
+                    <th>Início</th>
+                    <th>Término</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {linhas.map((c) => (
+                    <tr
+                      key={c.id}
+                      tabIndex={0}
+                      onClick={() => setAberto(c)}
+                      onKeyDown={(e) => e.key === 'Enter' && setAberto(c)}
+                      className={clsx('cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60', c.atrasado && 'text-red-700 dark:text-red-300')}
+                    >
+                      <td className="whitespace-nowrap font-mono text-xs font-bold">{c.numero}</td>
+                      <td className="whitespace-nowrap">{fmtDataHora(c.aberto_em)}</td>
+                      <td className="min-w-48">
+                        {c.setor_origem_nome}
+                        {c.leito_origem && ` (${c.leito_origem})`} → {c.setor_destino_nome ?? '—'}
+                        {c.leito_destino && ` (${c.leito_destino})`}
+                      </td>
+                      <td>{c.tipo}</td>
+                      <td>
+                        <StatusSelo status={c.status} atrasado={c.atrasado} />
+                      </td>
+                      <td>{c.maqueiro_nome ?? '—'}</td>
+                      <td className="whitespace-nowrap">
+                        {fmtHora(c.maqueiro_informado_em)}
+                        {c.min_acionamento !== null && <span className="text-xs text-slate-500"> (+{fmtDuracao(Number(c.min_acionamento))})</span>}
+                      </td>
+                      <td>{fmtHora(c.inicio_atendimento_em)}</td>
+                      <td>{fmtHora(c.encerrado_em ?? c.cancelado_em)}</td>
+                      <td className="whitespace-nowrap font-semibold">{c.min_total === null ? '—' : fmtDuracao(Number(c.min_total))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Tabela>
+            </>
           )}
         </>
       )}

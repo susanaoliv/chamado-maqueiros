@@ -212,7 +212,7 @@ export function ChamadoCard({ c, sla, agora, modo, maqueiros = [], ofertas = [] 
           <div className="flex flex-wrap items-center gap-2">
             <Selecao
               aria-label={`Status de ${c.numero}`}
-              className="min-w-0 flex-1 basis-48"
+              className="min-w-0 flex-1 basis-60"
               value={c.status}
               disabled={mudar.isPending}
               onChange={(e) => mudar.mutate({ p_chamado_id: c.id, p_status: e.target.value })}

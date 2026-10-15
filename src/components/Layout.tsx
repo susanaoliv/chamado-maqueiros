@@ -1,85 +1,278 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAuth, usePerfil } from '@/features/auth/AuthProvider';
 import { useRealtimeSync } from '@/hooks/dados';
+import { Icone, type NomeIcone } from '@/components/Icone';
+import { BotaoInstalar } from '@/components/InstalarApp';
 
-type Item = { para: string; rotulo: string };
+type Item = {
+  para: string;
+  rotulo: string;
+  icone: NomeIcone;
+  principal?: boolean;
+};
 
+// "principal" = aparece na barra de baixo do celular (no máximo 4). O resto fica em "Menu".
 export const MENU: Record<'gestao' | 'telefonista' | 'setor' | 'maqueiro', Item[]> = {
   maqueiro: [],
   telefonista: [
-    { para: '/central', rotulo: 'Central' },
-    { para: '/painel', rotulo: 'Painel' },
-    { para: '/maqueiros', rotulo: 'Maqueiros' },
-    { para: '/registros', rotulo: 'Registros' },
+    { para: '/central', rotulo: 'Central', icone: 'central', principal: true },
+    { para: '/painel', rotulo: 'Painel', icone: 'painel', principal: true },
+    {
+      para: '/maqueiros',
+      rotulo: 'Maqueiros',
+      icone: 'maqueiros',
+      principal: true,
+    },
+    {
+      para: '/registros',
+      rotulo: 'Registros',
+      icone: 'registros',
+      principal: true,
+    },
   ],
-  setor: [{ para: '/meus-chamados', rotulo: 'Meus chamados' }],
+  setor: [
+    {
+      para: '/meus-chamados',
+      rotulo: 'Meus chamados',
+      icone: 'chamados',
+      principal: true,
+    },
+  ],
   gestao: [
-    { para: '/central', rotulo: 'Central' },
-    { para: '/painel', rotulo: 'Painel' },
-    { para: '/maqueiros', rotulo: 'Maqueiros' },
-    { para: '/registros', rotulo: 'Registros' },
-    { para: '/dashboard', rotulo: 'Dashboard' },
-    { para: '/capacidade', rotulo: 'Capacidade' },
-    { para: '/relatorios', rotulo: 'Relatórios' },
-    { para: '/escala', rotulo: 'Escala' },
-    { para: '/historico', rotulo: 'Histórico' },
-    { para: '/configuracoes', rotulo: 'Configurações' },
+    { para: '/central', rotulo: 'Central', icone: 'central', principal: true },
+    { para: '/painel', rotulo: 'Painel', icone: 'painel', principal: true },
+    {
+      para: '/maqueiros',
+      rotulo: 'Maqueiros',
+      icone: 'maqueiros',
+      principal: true,
+    },
+    { para: '/registros', rotulo: 'Registros', icone: 'registros' },
+    {
+      para: '/dashboard',
+      rotulo: 'Dashboard',
+      icone: 'dashboard',
+      principal: true,
+    },
+    { para: '/capacidade', rotulo: 'Capacidade', icone: 'capacidade' },
+    { para: '/relatorios', rotulo: 'Relatórios', icone: 'relatorios' },
+    { para: '/escala', rotulo: 'Escala', icone: 'escala' },
+    { para: '/historico', rotulo: 'Histórico', icone: 'historico' },
+    { para: '/configuracoes', rotulo: 'Configurações', icone: 'configuracoes' },
   ],
 };
 
-const NOME_PAPEL = { gestao: 'Gestão NIR', telefonista: 'Central de Telefonistas', setor: 'Enfermagem', maqueiro: 'Maqueiro' };
+const NOME_PAPEL = {
+  gestao: 'Gestão NIR',
+  telefonista: 'Central de Telefonistas',
+  setor: 'Enfermagem',
+  maqueiro: 'Maqueiro',
+};
+
+function AoVivo({ conectado, compacto }: { conectado: boolean; compacto?: boolean }) {
+  return (
+    <span
+      className={clsx('inline-flex items-center gap-1.5 text-xs font-medium', conectado ? 'text-green-700 dark:text-green-400' : 'text-orange-600')}
+      title={conectado ? 'Atualização em tempo real ativa' : 'Reconectando… os dados podem estar desatualizados'}
+    >
+      <span className={clsx('h-2 w-2 shrink-0 rounded-full', conectado ? 'bg-green-500' : 'animate-pulse bg-orange-500')} />
+      <span className={clsx(compacto && 'sr-only')}>{conectado ? 'ao vivo' : 'reconectando'}</span>
+    </span>
+  );
+}
 
 export function Layout() {
   const perfil = usePerfil();
   const { sair } = useAuth();
   const conectado = useRealtimeSync(true);
+  const local = useLocation();
+  const [menuAberto, setMenuAberto] = useState(false);
+  const itens = MENU[perfil.papel];
+  const principais = itens.filter((i) => i.principal).slice(0, 4);
+  const atual = itens.find((i) => local.pathname.startsWith(i.para));
+  const subtitulo = `${perfil.papel === 'setor' ? perfil.setorNome : NOME_PAPEL[perfil.papel]} · ${perfil.atorNome}`;
+
+  // Fecha o menu do celular ao trocar de tela.
+  useEffect(() => setMenuAberto(false), [local.pathname]);
+  useEffect(() => {
+    if (atual) document.title = `${atual.rotulo} · Maqueiros CSSL`;
+  }, [atual]);
+
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2">
-          <div className="flex items-center gap-2">
-            <img src="/favicon.svg" alt="" className="h-8 w-8" />
-            <div className="leading-tight">
-              <div className="font-bold">Chamados de Maqueiros</div>
-              <div className="text-xs text-slate-500">
-                {perfil.papel === 'setor' ? perfil.setorNome : NOME_PAPEL[perfil.papel]} · {perfil.atorNome}
-              </div>
+    <div className="min-h-dvh lg:pl-60">
+      {/* Computador: barra lateral fixa */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 lg:flex">
+        <div className="flex items-center gap-2 px-4 pb-3 pt-4">
+          <img src="/favicon.svg" alt="" className="h-9 w-9" />
+          <div className="min-w-0 leading-tight">
+            <div className="font-bold">Maqueiros CSSL</div>
+            <div className="truncate text-xs text-slate-500" title={subtitulo}>
+              {subtitulo}
             </div>
           </div>
-          <nav aria-label="Principal" className="order-3 -mx-1 flex w-full gap-1 overflow-x-auto md:order-none md:w-auto md:flex-1 lg:flex-wrap lg:overflow-visible">
-            {MENU[perfil.papel].map((i) => (
-              <NavLink
-                key={i.para}
-                to={i.para}
-                className={({ isActive }) =>
-                  clsx(
-                    'whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold',
-                    isActive ? 'bg-marca-600 text-white' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800',
-                  )
-                }
-              >
-                {i.rotulo}
-              </NavLink>
-            ))}
-          </nav>
-          <div className="ml-auto flex items-center gap-3">
-            <span
-              className={clsx('inline-flex items-center gap-1 text-xs', conectado ? 'text-green-700 dark:text-green-400' : 'text-orange-600')}
-              title={conectado ? 'Atualização em tempo real ativa' : 'Reconectando… os dados podem estar desatualizados'}
+        </div>
+        <nav aria-label="Principal" className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
+          {itens.map((i) => (
+            <NavLink
+              key={i.para}
+              to={i.para}
+              className={({ isActive }) =>
+                clsx(
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition',
+                  isActive ? 'bg-marca-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800',
+                )
+              }
             >
-              <span className={clsx('h-2 w-2 rounded-full', conectado ? 'bg-green-500' : 'animate-pulse bg-orange-500')} />
-              {conectado ? 'ao vivo' : 'reconectando'}
-            </span>
-            <button onClick={() => sair()} className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
-              Sair
-            </button>
+              <Icone nome={i.icone} />
+              {i.rotulo}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="space-y-2 border-t border-slate-200 p-3 dark:border-slate-800">
+          <div className="px-3">
+            <AoVivo conectado={conectado} />
           </div>
+          <BotaoInstalar lateral className="w-full" />
+          <button
+            onClick={() => sair()}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <Icone nome="sair" />
+            Sair
+          </button>
+        </div>
+      </aside>
+
+      {/* Celular e tablet: barra de cima enxuta */}
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 lg:hidden">
+        <div className="flex h-14 items-center gap-3 px-4">
+          <img src="/favicon.svg" alt="" className="h-8 w-8" />
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className="truncate font-bold">{atual?.rotulo ?? 'Maqueiros CSSL'}</div>
+            <div className="truncate text-xs text-slate-500">{subtitulo}</div>
+          </div>
+          <AoVivo conectado={conectado} compacto />
         </div>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-5">
+
+      <main className="mx-auto max-w-7xl px-3 py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-5 lg:px-6 lg:pb-8">
         <Outlet />
       </main>
+
+      {/* Celular e tablet: barra de abas embaixo, ao alcance do polegar */}
+      <nav
+        aria-label="Atalhos"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 lg:hidden"
+      >
+        <div className="mx-auto flex max-w-xl">
+          {principais.map((i) => (
+            <NavLink
+              key={i.para}
+              to={i.para}
+              className={({ isActive }) =>
+                clsx(
+                  'flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-semibold',
+                  isActive ? 'text-marca-600 dark:text-marca-100' : 'text-slate-500 dark:text-slate-400',
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <span className={clsx('rounded-full px-4 py-1 transition', isActive && 'bg-marca-100 dark:bg-marca-700/60')}>
+                    <Icone nome={i.icone} />
+                  </span>
+                  <span className="max-w-full truncate">{i.rotulo}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+          <button
+            type="button"
+            onClick={() => setMenuAberto(true)}
+            aria-expanded={menuAberto}
+            className={clsx(
+              'flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-semibold',
+              menuAberto || (atual && !atual.principal) ? 'text-marca-600 dark:text-marca-100' : 'text-slate-500 dark:text-slate-400',
+            )}
+          >
+            <span className={clsx('rounded-full px-4 py-1', atual && !atual.principal && 'bg-marca-100 dark:bg-marca-700/60')}>
+              <Icone nome="menu" />
+            </span>
+            Menu
+          </button>
+        </div>
+      </nav>
+
+      {menuAberto && <MenuCelular itens={itens} subtitulo={subtitulo} conectado={conectado} aoFechar={() => setMenuAberto(false)} aoSair={() => sair()} />}
+    </div>
+  );
+}
+
+function MenuCelular({
+  itens,
+  subtitulo,
+  conectado,
+  aoFechar,
+  aoSair,
+}: {
+  itens: Item[];
+  subtitulo: string;
+  conectado: boolean;
+  aoFechar: () => void;
+  aoSair: () => void;
+}) {
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && aoFechar();
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [aoFechar]);
+  return (
+    <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+      <button type="button" aria-label="Fechar menu" onClick={aoFechar} className="absolute inset-0 bg-slate-900/50" />
+      <div className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-white pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl dark:bg-slate-900">
+        <div className="sticky top-0 flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+          <div className="min-w-0 flex-1">
+            <div className="font-bold">Menu</div>
+            <div className="truncate text-xs text-slate-500">{subtitulo}</div>
+          </div>
+          <AoVivo conectado={conectado} />
+          <button type="button" onClick={aoFechar} aria-label="Fechar" className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <Icone nome="fechar" />
+          </button>
+        </div>
+        <nav aria-label="Todas as telas" className="grid grid-cols-3 gap-2 p-4 sm:grid-cols-4">
+          {itens.map((i) => (
+            <NavLink
+              key={i.para}
+              to={i.para}
+              className={({ isActive }) =>
+                clsx(
+                  'flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-center text-xs font-semibold',
+                  isActive
+                    ? 'border-marca-500 bg-marca-50 text-marca-700 dark:bg-marca-700/40 dark:text-marca-100'
+                    : 'border-slate-200 text-slate-700 dark:border-slate-700 dark:text-slate-200',
+                )
+              }
+            >
+              <Icone nome={i.icone} className="h-6 w-6" />
+              {i.rotulo}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="space-y-2 px-4">
+          <BotaoInstalar className="w-full" />
+          <button
+            type="button"
+            onClick={aoSair}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-red-700 dark:border-slate-700 dark:text-red-400"
+          >
+            <Icone nome="sair" />
+            Sair do sistema
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

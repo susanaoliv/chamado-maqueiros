@@ -7,6 +7,7 @@ import { Botao, Campo, Entrada } from '@/components/ui';
 import { useAuth } from './AuthProvider';
 import { mensagemErro } from '@/lib/erros';
 import { supabaseConfigurado } from '@/lib/supabase';
+import { BotaoInstalar } from '@/components/InstalarApp';
 
 const schema = z.object({
   usuario: z.string().trim().min(2, 'Informe o usuário'),
@@ -82,6 +83,7 @@ export function LoginPage() {
             </Link>
           </p>
         </form>
+        <BotaoInstalar className="mt-4 w-full" />
       </div>
     </main>
   );

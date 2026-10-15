@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { App } from './App';
+import '@/hooks/instalarApp'; // escuta cedo o aviso de "pode instalar" do navegador
 import './index.css';
 
 const queryClient = new QueryClient({
