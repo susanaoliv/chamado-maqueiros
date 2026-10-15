@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { Botao, Campo, Entrada, Selecao } from '@/components/ui';
 import { normalizar } from '@/lib/regras';
 import { mensagemErro } from '@/lib/erros';
+import { TelaEntrada } from '@/components/Marca';
 import { enviarCadastro, listarMaqueirosPublico, listarSetoresPublico, schemaCadastro, type CadastroEntrada, type CadastroSaida } from './cadastro';
 
 export function CadastroPage() {
@@ -33,8 +34,8 @@ export function CadastroPage() {
 
   if (resultado) {
     return (
-      <main className="flex min-h-screen items-center justify-center p-4">
-        <div className="w-full max-w-sm space-y-4 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <TelaEntrada titulo="Chamados de Maqueiros">
+        <div className="w-full space-y-4 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="text-4xl">{resultado.aprovado ? '✅' : '⏳'}</div>
           <h1 className="text-xl font-bold">{resultado.aprovado ? 'Acesso da Gestão NIR criado' : 'Cadastro enviado'}</h1>
           <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -47,18 +48,12 @@ export function CadastroPage() {
             Ir para o login
           </Link>
         </div>
-      </main>
+      </TelaEntrada>
     );
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-6 text-center">
-          <img src="/favicon.svg" alt="" className="mx-auto mb-3 h-14 w-14" />
-          <h1 className="text-2xl font-bold">Criar acesso</h1>
-          <p className="text-sm text-slate-500">Chamados de Maqueiros · Casa de Saúde São Lucas</p>
-        </div>
+    <TelaEntrada titulo="Criar acesso" subtitulo="Chamados de Maqueiros" largura="max-w-md">
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate
@@ -145,12 +140,11 @@ export function CadastroPage() {
             Enviar cadastro
           </Botao>
           <p className="text-center text-sm">
-            <Link to="/login" className="text-marca-600 underline">
+            <Link to="/login" className="text-marca-600 underline dark:text-marca-300">
               Já tenho acesso
             </Link>
           </p>
         </form>
-      </div>
-    </main>
+    </TelaEntrada>
   );
 }

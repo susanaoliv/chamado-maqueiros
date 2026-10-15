@@ -2,8 +2,8 @@
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useEffect, useState } from 'react';
 
-const CATEG_CLARO = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
-const CATEG_ESCURO = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'];
+const CATEG_CLARO = ['#007070', '#eb6834', '#2a78d6', '#eda100', '#e87ba4', '#4a3aa7', '#e34948', '#64748b'];
+const CATEG_ESCURO = ['#2bb3a8', '#d95926', '#3987e5', '#c98500', '#d55181', '#9085e9', '#e66767', '#94a3b8'];
 
 export function useModoEscuro() {
   const q = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -21,7 +21,7 @@ export function useCores() {
   const escuro = useModoEscuro();
   return {
     categ: escuro ? CATEG_ESCURO : CATEG_CLARO,
-    principal: escuro ? '#3987e5' : '#2a78d6',
+    principal: escuro ? '#2bb3a8' : '#007070',
     destaque: escuro ? '#d95926' : '#eb6834',
     bom: escuro ? '#22a06b' : '#1f845a',
     ruim: escuro ? '#e66767' : '#c9372c',

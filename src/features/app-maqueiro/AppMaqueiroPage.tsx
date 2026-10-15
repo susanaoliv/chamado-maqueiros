@@ -8,6 +8,7 @@ import { mensagemErro, exigeMotivoAtrasoErro } from '@/lib/erros';
 import { agora as agoraServidor, definirOffsetServidor, fmtDuracao, fmtHora, minutosEntre } from '@/lib/tempo';
 import { MOTIVOS_ATRASO } from '@/lib/constantes';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { SimboloHospital } from '@/components/Marca';
 import { segundosRestantes } from './oferta';
 
 type ChamadoApp = {
@@ -214,8 +215,8 @@ export function AppMaqueiroPage() {
 
   return (
     <div className="mx-auto min-h-screen max-w-md bg-slate-50 pb-10 dark:bg-slate-950" onClick={() => !liberado && liberar()}>
-      <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
-        <img src="/favicon.svg" alt="" className="h-9 w-9" />
+      <header className="sticky top-0 z-20 flex items-center gap-3 border-b-4 border-marca-600 bg-white px-4 py-3 dark:bg-slate-900">
+        <SimboloHospital className="h-9 w-9" />
         <div className="min-w-0 flex-1 leading-tight">
           <div className="truncate font-bold">{e.maqueiro.nome}</div>
           <div className="text-xs text-slate-500">

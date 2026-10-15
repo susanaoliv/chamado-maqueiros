@@ -8,6 +8,7 @@ import { useAuth } from './AuthProvider';
 import { mensagemErro } from '@/lib/erros';
 import { supabaseConfigurado } from '@/lib/supabase';
 import { BotaoInstalar } from '@/components/InstalarApp';
+import { TelaEntrada } from '@/components/Marca';
 
 const schema = z.object({
   usuario: z.string().trim().min(2, 'Informe o usuário'),
@@ -36,13 +37,7 @@ export function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <img src="/favicon.svg" alt="" className="mx-auto mb-3 h-14 w-14" />
-          <h1 className="text-2xl font-bold">Chamados de Maqueiros</h1>
-          <p className="text-sm text-slate-500">Casa de Saúde São Lucas</p>
-        </div>
+    <TelaEntrada titulo="Chamados de Maqueiros" subtitulo="Transporte interno de pacientes">
         {!supabaseConfigurado && (
           <p role="alert" className="mb-4 rounded-lg bg-orange-100 p-3 text-sm text-orange-900">
             Sistema sem configuração do servidor. Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.
@@ -78,13 +73,12 @@ export function LoginPage() {
           </Botao>
           <p className="text-center text-sm text-slate-600 dark:text-slate-300">
             Ainda não tem acesso?{' '}
-            <Link to="/cadastro" className="font-semibold text-marca-600 underline">
+            <Link to="/cadastro" className="font-semibold text-marca-600 underline dark:text-marca-300">
               Cadastre-se
             </Link>
           </p>
         </form>
         <BotaoInstalar className="mt-4 w-full" />
-      </div>
-    </main>
+    </TelaEntrada>
   );
 }
