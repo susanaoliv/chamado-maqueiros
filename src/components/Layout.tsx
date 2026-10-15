@@ -5,6 +5,7 @@ import { useAuth, usePerfil } from '@/features/auth/AuthProvider';
 import { useRealtimeSync } from '@/hooks/dados';
 import { Icone, type NomeIcone } from '@/components/Icone';
 import { BotaoInstalar } from '@/components/InstalarApp';
+import { LogoHospital, SimboloHospital } from '@/components/Marca';
 import { atalhosCelular, telasPermitidas } from '@/lib/telas';
 
 type Item = {
@@ -22,10 +23,13 @@ const NOME_PAPEL = {
   maqueiro: 'Maqueiro',
 };
 
-function AoVivo({ conectado, compacto }: { conectado: boolean; compacto?: boolean }) {
+function AoVivo({ conectado, compacto, sobreEscuro }: { conectado: boolean; compacto?: boolean; sobreEscuro?: boolean }) {
   return (
     <span
-      className={clsx('inline-flex items-center gap-1.5 text-xs font-medium', conectado ? 'text-green-700 dark:text-green-400' : 'text-orange-600')}
+      className={clsx(
+        'inline-flex items-center gap-1.5 text-xs font-medium',
+        sobreEscuro ? (conectado ? 'text-green-200' : 'text-orange-200') : conectado ? 'text-green-700 dark:text-green-400' : 'text-orange-600',
+      )}
       title={conectado ? 'Atualização em tempo real ativa' : 'Reconectando… os dados podem estar desatualizados'}
     >
       <span className={clsx('h-2 w-2 shrink-0 rounded-full', conectado ? 'bg-green-500' : 'animate-pulse bg-orange-500')} />
@@ -57,12 +61,14 @@ export function Layout() {
   return (
     <div className="min-h-dvh lg:pl-60">
       {/* Computador: barra lateral fixa */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 lg:flex">
-        <div className="flex items-center gap-2 px-4 pb-3 pt-4">
-          <img src="/favicon.svg" alt="" className="h-9 w-9" />
-          <div className="min-w-0 leading-tight">
-            <div className="font-bold">Maqueiros CSSL</div>
-            <div className="truncate text-xs text-slate-500" title={subtitulo}>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col bg-gradient-to-b from-marca-700 to-marca-900 text-white lg:flex">
+        <div className="px-3 pb-3 pt-3">
+          <div className="rounded-xl bg-white px-3 py-2.5 shadow-md">
+            <LogoHospital className="mx-auto w-44" />
+          </div>
+          <div className="mt-3 px-1 leading-tight">
+            <div className="font-bold">Chamados de Maqueiros</div>
+            <div className="truncate text-xs text-marca-100" title={subtitulo}>
               {subtitulo}
             </div>
           </div>
@@ -75,7 +81,7 @@ export function Layout() {
               className={({ isActive }) =>
                 clsx(
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition',
-                  isActive ? 'bg-marca-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800',
+                  isActive ? 'bg-white text-marca-700 shadow-sm' : 'text-marca-50 hover:bg-white/10',
                 )
               }
             >
@@ -84,14 +90,14 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
-        <div className="space-y-2 border-t border-slate-200 p-3 dark:border-slate-800">
+        <div className="space-y-2 border-t border-white/15 p-3">
           <div className="px-3">
-            <AoVivo conectado={conectado} />
+            <AoVivo conectado={conectado} sobreEscuro />
           </div>
           <BotaoInstalar lateral className="w-full" />
           <button
             onClick={() => sair()}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-marca-50 hover:bg-white/10"
           >
             <Icone nome="sair" />
             Sair
@@ -101,8 +107,9 @@ export function Layout() {
 
       {/* Celular e tablet: barra de cima enxuta */}
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 lg:hidden">
+        <div className="h-1 bg-gradient-to-r from-marca-500 via-marca-600 to-marca-800" />
         <div className="flex h-14 items-center gap-3 px-4">
-          <img src="/favicon.svg" alt="" className="h-8 w-8" />
+          <SimboloHospital className="h-8 w-8" />
           <div className="min-w-0 flex-1 leading-tight">
             <div className="truncate font-bold">{atual?.rotulo ?? 'Maqueiros CSSL'}</div>
             <div className="truncate text-xs text-slate-500">{subtitulo}</div>
@@ -187,8 +194,9 @@ function MenuCelular({
       <button type="button" aria-label="Fechar menu" onClick={aoFechar} className="absolute inset-0 bg-slate-900/50" />
       <div className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-white pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl dark:bg-slate-900">
         <div className="sticky top-0 flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+          <SimboloHospital className="h-9 w-9" />
           <div className="min-w-0 flex-1">
-            <div className="font-bold">Menu</div>
+            <div className="truncate font-bold">Casa de Saúde São Lucas</div>
             <div className="truncate text-xs text-slate-500">{subtitulo}</div>
           </div>
           <AoVivo conectado={conectado} />

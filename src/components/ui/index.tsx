@@ -275,13 +275,13 @@ export function Abas<T extends string>({ abas, ativa, onChange }: { abas: { id: 
 // KPI
 // ----------------------------------------------------------------------------
 const CORES_KPI: Record<string, string> = {
-  blue: 'from-blue-500 to-blue-600',
+  blue: 'from-marca-500 to-marca-700',
   green: 'from-green-500 to-green-600',
   orange: 'from-orange-400 to-orange-500',
   red: 'from-red-500 to-red-600',
   purple: 'from-purple-500 to-purple-600',
   slate: 'from-slate-500 to-slate-600',
-  teal: 'from-teal-500 to-teal-600',
+  teal: 'from-cyan-600 to-cyan-700',
 };
 export function Kpi({ titulo, valor, detalhe, cor = 'blue' }: { titulo: string; valor: ReactNode; detalhe?: ReactNode; cor?: string }) {
   return (
