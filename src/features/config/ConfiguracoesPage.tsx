@@ -197,7 +197,7 @@ function Acessos() {
   });
   const [senha, setSenha] = useState<{ usuario: string; senha: string } | null>(null);
   const { data: perfisAcesso = [] } = usePerfisAcesso();
-  const [novo, setNovo] = useState({ opcao: 'papel:setor', setor_id: '', usuario: '', nome: '' });
+  const [novo, setNovo] = useState({ opcao: 'papel:setor', setor_id: '', maqueiro_id: '', usuario: '', nome: '' });
   const novoResolvido = resolverOpcaoPerfil(novo.opcao, perfisAcesso);
   const acao = useMutation({
     mutationFn: (body: Record<string, unknown>) => adminUsuarios<{ usuario: string; senha?: string }>(body),
@@ -252,12 +252,33 @@ function Acessos() {
       )}
 
       <Cartao titulo="Criar acesso">
-        <div className="grid gap-3 sm:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Campo rotulo="Perfil" htmlFor="ac_papel">
             <Selecao id="ac_papel" value={novo.opcao} onChange={(e) => setNovo({ ...novo, opcao: e.target.value })}>
-              <OpcoesPerfil perfis={perfisAcesso} />
+              <OpcoesPerfil perfis={perfisAcesso} comMaqueiro />
             </Selecao>
           </Campo>
+          {novoResolvido.papel === 'maqueiro' && (
+            <Campo rotulo="Maqueiro da escala" htmlFor="ac_maqueiro" dica="Só aparece quem ainda não tem login.">
+              <Selecao
+                id="ac_maqueiro"
+                value={novo.maqueiro_id}
+                onChange={(e) => {
+                  const nome = maqueiroNome(e.target.value);
+                  setNovo({ ...novo, maqueiro_id: e.target.value, usuario: normalizar(nome.split(' ')[0] ?? ''), nome });
+                }}
+              >
+                <option value="">Selecione…</option>
+                {maqueiros
+                  .filter((m) => m.ativo && !(lista.data ?? []).some((p) => p.maqueiro_id === m.id))
+                  .map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nome}
+                    </option>
+                  ))}
+              </Selecao>
+            </Campo>
+          )}
           {novoResolvido.papel === 'setor' && (
             <Campo rotulo="Setor" htmlFor="ac_setor">
               <Selecao
@@ -289,7 +310,7 @@ function Acessos() {
         <Botao
           className="mt-3"
           carregando={acao.isPending}
-          disabled={!novo.usuario || (novoResolvido.papel === 'setor' && !novo.setor_id)}
+          disabled={!novo.usuario || (novoResolvido.papel === 'setor' && !novo.setor_id) || (novoResolvido.papel === 'maqueiro' && !novo.maqueiro_id)}
           onClick={() =>
             acao.mutate({
               acao: 'criar',
@@ -297,6 +318,7 @@ function Acessos() {
               nome: novo.nome,
               ...novoResolvido,
               setor_id: novoResolvido.papel === 'setor' ? novo.setor_id : null,
+              maqueiro_id: novoResolvido.papel === 'maqueiro' ? novo.maqueiro_id : null,
             })
           }
         >

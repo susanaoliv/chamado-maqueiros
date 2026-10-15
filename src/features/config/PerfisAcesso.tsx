@@ -290,6 +290,12 @@ function FormPerfil({ inicial, salvando, aoSalvar }: { inicial: Rascunho; salvan
             só funciona se a tela Configurações estiver marcada. Use este nível para pessoas de confiança da gestão.
           </p>
         )}
+        {r.papel_base === 'maqueiro' && (
+          <p className="mt-3 text-xs text-slate-500">
+            Mesmas permissões do maqueiro padrão: só o app do celular. Serve para separar grupos (ex.: Maqueiro CC, diarista, plantonista). Em
+            Acessos, cada usuário deste perfil é ligado ao nome dele na escala.
+          </p>
+        )}
         {r.papel_base === 'setor' && (
           <p className="mt-3 text-xs text-slate-500">O usuário com este perfil vê só os chamados do setor escolhido no cadastro dele, em Acessos.</p>
         )}
