@@ -5,15 +5,18 @@ import { supabase, definirAtorNome, obterAtorNome } from '@/lib/supabase';
 import { definirOffsetServidor } from '@/lib/tempo';
 import { DOMINIO_LOGIN } from '@/lib/constantes';
 import { normalizar } from '@/lib/regras';
-import type { Perfil } from '@/types/database';
+import type { Perfil, PerfilAcesso } from '@/types/database';
 
-export type Papel = 'gestao' | 'telefonista' | 'setor' | 'maqueiro';
+import type { Papel } from '@/lib/telas';
+export type { Papel };
 
 type Ctx = {
   carregando: boolean;
   sessao: Session | null;
   perfil: (Perfil & { papel: Papel }) | null;
   setorNome: string | null;
+  /** perfil personalizado (Configurações → Perfis), quando o usuário tem um */
+  perfilAcesso: PerfilAcesso | null;
   atorNome: string;
   semPerfil: boolean;
   /** cadastro feito pela própria pessoa, ainda não aprovado pela gestão */
@@ -35,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessao, setSessao] = useState<Session | null>(null);
   const [perfil, setPerfil] = useState<Ctx['perfil']>(null);
   const [setorNome, setSetorNome] = useState<string | null>(null);
+  const [perfilAcesso, setPerfilAcesso] = useState<PerfilAcesso | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [semPerfil, setSemPerfil] = useState(false);
   const [pendente, setPendente] = useState(false);
@@ -44,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!s) {
       setPerfil(null);
       setSetorNome(null);
+      setPerfilAcesso(null);
       setSemPerfil(false);
       setPendente(false);
       return;
@@ -57,6 +62,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setSemPerfil(false);
     setPendente(false);
+    if (data.perfil_acesso_id) {
+      const { data: pa } = await supabase.from('perfis_acesso').select('*').eq('id', data.perfil_acesso_id).maybeSingle();
+      setPerfilAcesso(pa ?? null);
+    } else setPerfilAcesso(null);
     setPerfil(data as Ctx['perfil']);
     if (data.setor_id) {
       const { data: st } = await supabase.from('setores').select('nome').eq('id', data.setor_id).maybeSingle();
@@ -114,8 +123,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [qc]);
 
   const valor = useMemo<Ctx>(
-    () => ({ carregando, sessao, perfil, setorNome, atorNome, semPerfil, pendente, entrar, sair }),
-    [carregando, sessao, perfil, setorNome, atorNome, semPerfil, pendente, entrar, sair],
+    () => ({ carregando, sessao, perfil, setorNome, perfilAcesso, atorNome, semPerfil, pendente, entrar, sair }),
+    [carregando, sessao, perfil, setorNome, perfilAcesso, atorNome, semPerfil, pendente, entrar, sair],
   );
   return <AuthCtx.Provider value={valor}>{children}</AuthCtx.Provider>;
 }
@@ -128,7 +137,12 @@ export function useAuth() {
 
 /** Perfil garantido (usar apenas dentro de rotas protegidas). */
 export function usePerfil() {
-  const { perfil, atorNome, setorNome } = useAuth();
+  const { perfil, atorNome, setorNome, perfilAcesso } = useAuth();
   if (!perfil) throw new Error('Sem perfil');
-  return { ...perfil, atorNome: atorNome || perfil.nome, setorNome: setorNome ?? (perfil.papel === 'setor' ? perfil.nome : null) };
+  return {
+    ...perfil,
+    perfilAcesso,
+    atorNome: atorNome || perfil.nome,
+    setorNome: setorNome ?? (perfil.papel === 'setor' ? perfil.nome : null),
+  };
 }

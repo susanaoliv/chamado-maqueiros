@@ -88,6 +88,11 @@ export type Database = {
       perfis: Tabela<{
         id: string; usuario: string; papel: string; setor_id: string | null; nome: string; ativo: boolean;
         aprovado_em: string | null; aprovado_por: string | null; maqueiro_id: string | null; created_at: string;
+        perfil_acesso_id: string | null;
+      }>;
+      perfis_acesso: Tabela<{
+        id: string; nome: string; descricao: string | null; papel_base: 'gestao' | 'telefonista' | 'setor'; telas: string[];
+        ativo: boolean; created_at: string;
       }>;
       maqueiros: Tabela<{
         id: string; nome: string; matricula: string | null; turno: string; horario_inicio: string; horario_fim: string;
@@ -215,6 +220,7 @@ export type Database = {
 type T = Database['public']['Tables'];
 export type Setor = T['setores']['Row'];
 export type Perfil = T['perfis']['Row'];
+export type PerfilAcesso = T['perfis_acesso']['Row'];
 export type Maqueiro = T['maqueiros']['Row'];
 export type EscalaDia = T['escala_dias']['Row'];
 export type Habilitacao = T['habilitacoes']['Row'];

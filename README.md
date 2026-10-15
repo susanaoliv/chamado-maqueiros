@@ -154,8 +154,16 @@ planilha de cada mês.
 | `setor` (Enfermagem) | Meus chamados | abrir chamados do próprio setor, acompanhar em tempo real, cancelar os do próprio setor |
 | `telefonista` (Central) | Central, Painel, Maqueiros, Registros | abrir, distribuir maqueiros, mudar status, encerrar, cancelar; habilitar/desabilitar, indisponível, iniciar/encerrar intervalo; consultar registros com horários e linha do tempo, exportar |
 | `gestao` (Gestão NIR) | todas | tudo acima + dashboard (inclui aba Intervalos), capacidade, relatórios e exportação, escala, histórico, correções, configurações e acessos |
-
 | `maqueiro` (app no celular) | App (`/app`) | iniciar/encerrar jornada (GPS dentro do hospital e escala/habilitação), receber, aceitar ou recusar chamados, atualizar andamento, concluir, intervalo |
+
+**Perfis personalizados** (Configurações → **Perfis**, migration 10): a gestão cria perfis novos
+(ex.: Supervisão de enfermagem, Diretoria, Qualidade) escolhendo o **nível de permissão** (Gestão NIR,
+Central ou Enfermagem do setor) e as **telas** que o perfil enxerga, entre as que o nível permite. Em
+**Acessos**, o perfil aparece na lista junto com os padrão.
+- O nível é o que vale no banco (RLS e RPCs); as telas desmarcadas somem do menu e a rota é bloqueada.
+- O nível não muda depois de criado; perfil com usuário ativo não pode ser desativado; nada é apagado e
+  toda mudança vai para o Histórico (tabela `perfis_acesso`, coluna `perfis.perfil_acesso_id`).
+- Perfil de nível Gestão só cria/edita usuários se tiver a tela Configurações marcada (checado na Edge Function).
 
 **App do maqueiro e distribuição automática** (migration 9):
 - O maqueiro se cadastra como "Maqueiro", escolhe o próprio nome da escala e a gestão aprova. No celular,
