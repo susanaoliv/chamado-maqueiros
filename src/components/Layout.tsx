@@ -62,9 +62,9 @@ export function Layout() {
   return (
     <div className="min-h-dvh lg:pl-60">
       {/* Computador: barra lateral fixa */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col bg-gradient-to-b from-marca-700 to-marca-900 text-white lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col overflow-y-auto bg-gradient-to-b from-marca-700 to-marca-900 text-white lg:flex">
         <div className="px-3 pb-3 pt-3">
-          <div className="rounded-xl bg-white px-3 py-2.5 shadow-md">
+          <div className="rounded-xl bg-white px-3 py-2 shadow-md">
             <LogoHospital className="mx-auto w-44" />
           </div>
           <div className="mt-3 px-1 leading-tight">
@@ -74,7 +74,7 @@ export function Layout() {
             </div>
           </div>
         </div>
-        <nav aria-label="Principal" className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
+        <nav aria-label="Principal" className="flex-1 space-y-0.5 px-3 py-1">
           {itens.map((i) => (
             <NavLink
               key={i.para}
@@ -91,7 +91,7 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
-        <div className="space-y-2 border-t border-white/15 p-3">
+        <div className="space-y-1 border-t border-white/15 p-3">
           <div className="px-3">
             <AoVivo conectado={conectado} sobreEscuro />
           </div>

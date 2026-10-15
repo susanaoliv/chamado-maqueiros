@@ -7,8 +7,17 @@ import { supabase } from '@/lib/supabase';
 import { mensagemErro } from '@/lib/erros';
 
 /** Botão + janela para a própria pessoa trocar a senha (não derruba a sessão atual). */
-export function BotaoMinhaSenha({ className, lateral }: { className?: string; lateral?: boolean }) {
+export function BotaoMinhaSenha({ className, lateral, pequeno }: { className?: string; lateral?: boolean; pequeno?: boolean }) {
   const [aberto, setAberto] = useState(false);
+  if (pequeno)
+    return (
+      <>
+        <Botao tamanho="sm" variante="secundario" className={className} onClick={() => setAberto(true)}>
+          Trocar minha senha
+        </Botao>
+        {aberto && <TrocarSenha aoFechar={() => setAberto(false)} />}
+      </>
+    );
   return (
     <>
       <button
@@ -20,7 +29,7 @@ export function BotaoMinhaSenha({ className, lateral }: { className?: string; la
           className,
         )}
       >
-        <Icone nome="chave" className={lateral ? 'h-5 w-5' : 'h-5 w-5'} />
+        <Icone nome="chave" className="h-5 w-5" />
         Minha senha
       </button>
       {aberto && <TrocarSenha aoFechar={() => setAberto(false)} />}

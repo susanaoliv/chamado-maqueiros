@@ -7,6 +7,7 @@ import { useConfig, useMaqueiros, useSetores } from '@/hooks/dados';
 import { mensagemErro } from '@/lib/erros';
 import { normalizar } from '@/lib/regras';
 import { usePerfil } from '@/features/auth/AuthProvider';
+import { BotaoMinhaSenha } from '@/components/MinhaSenha';
 import type { Json, Perfil, PerfilAcesso, Setor } from '@/types/database';
 import { OpcoesPerfil, PerfisAcesso, nomePerfilUsuario, resolverOpcaoPerfil, usePerfisAcesso, valorOpcaoPerfil } from './PerfisAcesso';
 
@@ -358,7 +359,10 @@ function Acessos() {
           <tbody>
             {demais.map((p) => (
               <tr key={p.id} className={!p.ativo ? 'opacity-50' : ''}>
-                <td className="font-mono">{p.usuario}</td>
+                <td className="font-mono">
+                  {p.usuario}
+                  {p.usuario === eu && <span className="ml-2 rounded bg-marca-100 px-1.5 py-0.5 font-sans text-xs font-semibold text-marca-800">você</span>}
+                </td>
                 <td>{nomePerfilUsuario(p.papel, p.perfil_acesso_id, perfisAcesso)}</td>
                 <td>{p.nome}</td>
                 <td>{setorNome(p.setor_id) || maqueiroNome(p.maqueiro_id)}</td>
@@ -368,7 +372,7 @@ function Acessos() {
                     Perfil
                   </Botao>
                   {p.usuario === eu ? (
-                    <span className="self-center text-xs text-slate-500">Você · troque em "Minha senha" no menu</span>
+                    <BotaoMinhaSenha pequeno />
                   ) : (
                     <>
                       <Botao
