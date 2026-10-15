@@ -10,6 +10,7 @@ import { lerCsv, lerGradeEscala, lerXlsx, type LinhaImportada } from '@/lib/impo
 import { hojeLocal, fmtDataHora, DIAS_SEMANA } from '@/lib/tempo';
 import { mensagemErro } from '@/lib/erros';
 import type { EscalaDia, Habilitacao, Indisponibilidade, Maqueiro } from '@/types/database';
+import { CadastroMaqueiros } from '@/features/maqueiros/CadastroMaqueiros';
 
 const CORES_ESCALA: Record<string, string> = {
   D: 'bg-sky-500 text-white',
@@ -284,126 +285,6 @@ function ImportarModal({ mes, maqueiros, aoFechar }: { mes: string; maqueiros: M
             </div>
           </>
         )}
-      </div>
-    </Modal>
-  );
-}
-
-// ----------------------------------------------------------------------------
-function CadastroMaqueiros() {
-  const { data: maqueiros, isLoading } = useMaqueiros(true);
-  const [editando, setEditando] = useState<Partial<Maqueiro> | null>(null);
-  if (isLoading) return <Carregando />;
-  return (
-    <div className="space-y-3">
-      <Botao onClick={() => setEditando({ turno: 'Diurno', horario_inicio: '07:00', horario_fim: '19:00', setor_atuacao: 'Hospital', ativo: true })}>
-        + Novo maqueiro
-      </Botao>
-      <Tabela>
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Matrícula</th>
-            <th>Turno</th>
-            <th>Horário</th>
-            <th>Atuação</th>
-            <th>Situação</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {(maqueiros ?? []).map((m) => (
-            <tr key={m.id} className={!m.ativo ? 'opacity-50' : ''}>
-              <td className="font-semibold">{m.nome}</td>
-              <td>{m.matricula ?? '—'}</td>
-              <td>{m.turno}</td>
-              <td>
-                {m.horario_inicio.slice(0, 5)}–{m.horario_fim.slice(0, 5)}
-              </td>
-              <td>{m.setor_atuacao}</td>
-              <td>{!m.ativo ? 'Inativo' : m.em_intervalo ? 'Intervalo' : 'Ativo'}</td>
-              <td>
-                <Botao tamanho="sm" variante="secundario" onClick={() => setEditando(m)}>
-                  Editar
-                </Botao>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Tabela>
-      {editando && <MaqueiroModal inicial={editando} aoFechar={() => setEditando(null)} />}
-    </div>
-  );
-}
-
-function MaqueiroModal({ inicial, aoFechar }: { inicial: Partial<Maqueiro>; aoFechar: () => void }) {
-  const qc = useQueryClient();
-  const [m, setM] = useState<Partial<Maqueiro>>({ ...inicial, horario_inicio: inicial.horario_inicio?.slice(0, 5), horario_fim: inicial.horario_fim?.slice(0, 5) });
-  const [salvando, setSalvando] = useState(false);
-  const set = (k: keyof Maqueiro, v: unknown) => setM((x) => ({ ...x, [k]: v }));
-
-  const salvar = async () => {
-    if (!m.nome?.trim()) return toast.error('Informe o nome');
-    setSalvando(true);
-    const dados = {
-      nome: m.nome.trim().toUpperCase(),
-      matricula: m.matricula?.trim() || null,
-      turno: m.turno ?? 'Diurno',
-      horario_inicio: m.horario_inicio ?? '07:00',
-      horario_fim: m.horario_fim ?? '19:00',
-      setor_atuacao: m.setor_atuacao?.trim() || 'Hospital',
-      ativo: m.ativo ?? true,
-    };
-    const { error } = m.id ? await supabase.from('maqueiros').update(dados).eq('id', m.id) : await supabase.from('maqueiros').insert(dados);
-    setSalvando(false);
-    if (error) return toast.error(mensagemErro(error));
-    toast.success('Maqueiro salvo');
-    qc.invalidateQueries({ queryKey: ['maqueiros'] });
-    qc.invalidateQueries({ queryKey: ['painel'] });
-    aoFechar();
-  };
-
-  return (
-    <Modal aberto aoFechar={aoFechar} titulo={m.id ? `Editar ${inicial.nome}` : 'Novo maqueiro'}>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Campo rotulo="Nome" className="sm:col-span-2" htmlFor="mq_nome">
-          <Entrada id="mq_nome" value={m.nome ?? ''} onChange={(e) => set('nome', e.target.value)} />
-        </Campo>
-        <Campo rotulo="Matrícula" htmlFor="mq_mat">
-          <Entrada id="mq_mat" value={m.matricula ?? ''} onChange={(e) => set('matricula', e.target.value)} />
-        </Campo>
-        <Campo rotulo="Turno" htmlFor="mq_turno">
-          <Selecao id="mq_turno" value={m.turno} onChange={(e) => set('turno', e.target.value)}>
-            <option>Diurno</option>
-            <option>Noturno</option>
-          </Selecao>
-        </Campo>
-        <Campo rotulo="Horário início" htmlFor="mq_ini">
-          <Entrada id="mq_ini" type="time" value={m.horario_inicio ?? ''} onChange={(e) => set('horario_inicio', e.target.value)} />
-        </Campo>
-        <Campo rotulo="Horário fim" htmlFor="mq_fim" dica="Menor que o início = termina no dia seguinte (ex.: 19h–07h).">
-          <Entrada id="mq_fim" type="time" value={m.horario_fim ?? ''} onChange={(e) => set('horario_fim', e.target.value)} />
-        </Campo>
-        <Campo rotulo="Setor de atuação" htmlFor="mq_setor">
-          <Selecao id="mq_setor" value={m.setor_atuacao} onChange={(e) => set('setor_atuacao', e.target.value)}>
-            <option>Hospital</option>
-            <option>CC</option>
-          </Selecao>
-        </Campo>
-        <Campo rotulo="Situação" htmlFor="mq_ativo">
-          <Selecao id="mq_ativo" value={m.ativo ? '1' : '0'} onChange={(e) => set('ativo', e.target.value === '1')}>
-            <option value="1">Ativo</option>
-            <option value="0">Inativo (não aparece na escala nem no acionamento)</option>
-          </Selecao>
-        </Campo>
-      </div>
-      <div className="mt-4 flex justify-end gap-2">
-        <Botao variante="secundario" onClick={aoFechar}>
-          Voltar
-        </Botao>
-        <Botao carregando={salvando} onClick={salvar}>
-          Salvar
-        </Botao>
       </div>
     </Modal>
   );

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import clsx from 'clsx';
-import { AreaTexto, Botao, Campo, Carregando, Entrada, Erro, Modal, Selecao } from '@/components/ui';
+import { Abas, AreaTexto, Botao, Campo, Carregando, Entrada, Erro, Modal, Selecao } from '@/components/ui';
+import { usePerfil } from '@/features/auth/AuthProvider';
+import { CadastroMaqueiros } from './CadastroMaqueiros';
 import { useAgora, useJornadasAbertas, usePainelMaqueiros } from '@/hooks/dados';
 import { MOTIVOS_HABILITACAO, SITUACAO_MAQUEIRO, TIPOS_INDISPONIBILIDADE } from '@/lib/constantes';
 import { fmtDuracao, fmtHora, minutosEntre } from '@/lib/tempo';
@@ -10,6 +12,27 @@ import type { PainelMaqueiro } from '@/types/database';
 const hhmm = (t: string | null | undefined) => (t ? t.slice(0, 5) : '');
 
 export function MaqueirosPage() {
+  const perfil = usePerfil();
+  const [aba, setAba] = useState<'hoje' | 'cadastro'>('hoje');
+  // Cadastro grava na tabela de maqueiros, que só a gestão pode alterar
+  const podeCadastrar = perfil.papel === 'gestao';
+  if (!podeCadastrar) return <MaqueirosHoje />;
+  return (
+    <div className="space-y-4">
+      <Abas
+        abas={[
+          { id: 'hoje', rotulo: 'Plantão de hoje' },
+          { id: 'cadastro', rotulo: 'Cadastro de maqueiros' },
+        ]}
+        ativa={aba}
+        onChange={setAba}
+      />
+      {aba === 'hoje' ? <MaqueirosHoje /> : <CadastroMaqueiros />}
+    </div>
+  );
+}
+
+function MaqueirosHoje() {
   const { data: painel, isLoading, error } = usePainelMaqueiros();
   const [habilitar, setHabilitar] = useState<PainelMaqueiro | null>(null);
   const [indisp, setIndisp] = useState<PainelMaqueiro | null>(null);
