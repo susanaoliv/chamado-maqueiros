@@ -1,8 +1,9 @@
 // Edge Function: gestão de acessos (somente perfil "gestao").
 // Ações:
 //   listar                                  → perfis cadastrados
-//   criar     { usuario, papel, nome, setor_id?, perfil_acesso_id? }  → cria login e devolve senha aleatória
-//   redefinir { usuario }                   → nova senha aleatória
+//   criar     { usuario, papel, nome, setor_id?, perfil_acesso_id? }  → cria login com a senha padrão
+//   redefinir { usuario }                   → volta a senha para o padrão
+// Senha padrão: usuario + "@2026" (ex.: uti1@2026). Cada um pode trocar em "Minha senha".
 //   ativar    { usuario, ativo }            → aprova/desbloqueia ou recusa/bloqueia o login (nunca exclui)
 //   alterar   { usuario, papel, setor_id?, maqueiro_id?, nome?, perfil_acesso_id? } → ajusta perfil e setor (ex.: ao aprovar um autocadastro)
 // perfil_acesso_id = perfil personalizado (Configurações → Perfis); o papel tem que ser o nível desse perfil.
@@ -20,11 +21,10 @@ function resposta(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 }
 
-// Senha de 10 caracteres sem caracteres ambíguos (0/O, 1/l/I)
-function senhaAleatoria(tamanho = 10) {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  const bytes = crypto.getRandomValues(new Uint8Array(tamanho));
-  return Array.from(bytes, (b) => chars[b % chars.length]).join('');
+// Senha padrão definida pela gestão: nome do usuário + "@2026"
+const SUFIXO_SENHA = '@2026';
+function senhaPadrao(usuario: string) {
+  return `${usuario}${SUFIXO_SENHA}`;
 }
 
 function normalizarUsuario(u: string) {
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
     const erroPerfil = await perfilAcessoValido(perfilAcessoId, papel);
     if (erroPerfil) return resposta({ erro: erroPerfil }, 400);
 
-    const senha = senhaAleatoria();
+    const senha = senhaPadrao(usuario);
     const { data: criado, error } = await admin.auth.admin.createUser({
       email: `${usuario}@${DOMINIO}`,
       password: senha,
@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
     }
     const { data: perfil } = await admin.from('perfis').select('id').eq('usuario', usuario).maybeSingle();
     if (!perfil) return resposta({ erro: 'Usuário não encontrado' }, 404);
-    const senha = senhaAleatoria();
+    const senha = senhaPadrao(usuario);
     const { error } = await admin.auth.admin.updateUserById(perfil.id, { password: senha });
     if (error) return resposta({ erro: error.message }, 400);
     return resposta({ usuario, senha });

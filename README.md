@@ -91,6 +91,9 @@ Cria `gestao`, `telefonista` e um login por setor ativo (nome sem acento e sem e
 `uti1`, `saojose`, `santaterezinha`, `ps`…), com senhas aleatórias de 10 caracteres, e grava
 `usuarios-iniciais.csv` (ignorado pelo git). **Entregue as senhas por canal seguro e apague o
 arquivo.** Depois disso, a gestão cria logins e troca senhas pela tela **Configurações → Acessos**.
+Logins criados pela tela usam a **senha padrão `usuario@2026`** (ex.: `uti1@2026`); o botão
+"Senha padrão" volta a senha de alguém para esse padrão. Cada pessoa pode trocar a própria senha
+em **Minha senha** (opcional).
 
 > O login é por usuário + senha. Internamente o Supabase usa o e-mail sintético
 > `usuario@maqueiros.cssl`, que nunca aparece na tela.
