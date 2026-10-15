@@ -68,6 +68,9 @@ describe('NovoChamadoForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /registrar chamado/i }));
     await waitFor(() => expect(mutateAsync).toHaveBeenCalled());
     expect(mutateAsync.mock.calls[0][0]).toMatchObject({ p_setor_origem_id: 'sj', p_leito_origem: '12', p_setor_destino_id: 'tomo', p_paciente: 'Maria', p_aberto_em: null });
+    // Origem do chamado não aparece mais no formulário; a Central registra "Telefone/central" sozinha
+    expect(screen.queryByLabelText(/origem do chamado/i)).toBeNull();
+    expect(mutateAsync.mock.calls[0][0]).toMatchObject({ p_origem_chamado: 'Telefone/central' });
     await waitFor(() => expect(aoConcluir).toHaveBeenCalled());
   });
 
