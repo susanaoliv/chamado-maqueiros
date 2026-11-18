@@ -1,4 +1,4 @@
-# Vídeo de treinamento (perfil Enfermagem)
+# Vídeos de treinamento (Enfermagem e app do maqueiro)
 
 Gera o vídeo vertical (1080x1920) com o sistema em uso, legendas e narração em português.
 Usa dados fictícios: o Supabase é simulado, nada toca o banco real.
@@ -22,3 +22,13 @@ python3 montar.py ./out ../public/logo-cssl.png treinamento_enfermagem.mp4
 
 O roteiro escrito está em `docs/ROTEIRO_VIDEO_ENFERMAGEM.md`. Para mudar uma fala, edite `FALAS` em
 `falas.py` (legenda e texto falado) e rode os três passos de novo.
+
+## App do maqueiro
+
+Mesmos passos, com os arquivos do maqueiro (maqueiro fictício "Carlos Alberto Souza"):
+
+```bash
+python3 falas_maqueiro.py pt_BR-faber-medium.onnx falas_maqueiro   # gera audio_falas_maqueiro/*.wav e falas_maqueiro.json
+node gravar_maqueiro.mjs ./dist ./out_maq ./falas_maqueiro.json
+python3 montar.py ./out_maq ../public/logo-cssl.png treinamento_maqueiro.mp4
+```
